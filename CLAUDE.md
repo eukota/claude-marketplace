@@ -25,6 +25,11 @@ docs/                              # repo-level documentation
 4. Register the plugin in `.claude-plugins/marketplace.json`
 5. Bump the plugin's version in both `plugin.json` and `marketplace.json` when making changes
 
+## Git
+
+- `git add`, `git commit`, and `git push` are all pre-approved — no need to confirm
+- Never `git push --force`
+
 ## Versioning
 
 Plugins version independently using semver. The top-level `marketplace.json` tracks each plugin's current version.
