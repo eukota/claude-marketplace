@@ -27,9 +27,13 @@ plugins/<plugin-name>/
 └── mcp-servers/      # (if applicable)
 ```
 
+## Not Sure What to Build?
+
+See the [primitive decision guide](plugins/plugin-builder/README.md#what-should-i-build) in the `plugin-builder` plugin.
+
 ## Registry
 
-`.claude-plugins/marketplace.json` lists all available plugins with their versions and paths.
+`.claude-plugin/marketplace.json` lists all available plugins with their versions and paths.
 
 ## License
 
