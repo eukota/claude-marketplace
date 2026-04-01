@@ -1,6 +1,12 @@
 {
-  "name": "eukota/claude-marketplace",
-  "description": "Personal Claude marketplace by Darrell Ross",
-  "version": "1.0.0",
+  "name": "claude-marketplace",
+  "owner": {
+    "name": "Darrell Ross"
+  },
+  "metadata": {
+    "description": "Personal Claude marketplace by Darrell Ross",
+    "version": "1.0.0",
+    "pluginRoot": "plugins"
+  },
   "plugins": []
 }
