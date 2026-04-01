@@ -5,7 +5,7 @@ This repo is a personal Claude primitives marketplace. Plugins are the unit of d
 ## Structure
 
 ```
-.claude-plugins/marketplace.json   # top-level plugin registry
+.claude-plugin/marketplace.json    # top-level plugin registry
 plugins/<plugin-name>/             # one directory per plugin
 docs/                              # repo-level documentation
 ```
@@ -22,7 +22,7 @@ docs/                              # repo-level documentation
 1. Create `plugins/<plugin-name>/`
 2. Add `plugin.json` with full metadata
 3. Add primitive files in the appropriate subdirectory
-4. Register the plugin in `.claude-plugins/marketplace.json`
+4. Register the plugin in `.claude-plugin/marketplace.json`
 5. Bump the plugin's version in both `plugin.json` and `marketplace.json` when making changes
 
 ## Git
