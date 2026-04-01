@@ -8,5 +8,16 @@
     "version": "1.0.0",
     "pluginRoot": "plugins"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "plugin-builder",
+      "version": "1.0.0",
+      "source": "./plugins/plugin-builder",
+      "description": "Tools for building Claude marketplace plugins — choosing primitives, scaffolding structure, and following conventions.",
+      "license": "MIT",
+      "author": {
+        "name": "Darrell Ross"
+      }
+    }
+  ]
 }
