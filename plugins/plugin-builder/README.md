@@ -38,3 +38,9 @@ Not sure? Use the `choose-primitive` skill — it will ask you a few questions a
 Guides you to the right Claude primitive for what you want to build. Asks a few questions about your goal and recommends between: skill, command, rule, hook, agent, or MCP server.
 
 **Use when:** You know you want to build something but aren't sure which primitive fits.
+
+### `scaffold-plugin`
+
+Creates a complete plugin scaffold — directory structure, `plugin.json`, `README.md`, primitive subdirectories, and registers the plugin in `marketplace.json`. Commits the result.
+
+**Use when:** You're ready to start a new plugin and want the boilerplate wired up correctly from the start.
