@@ -18,6 +18,16 @@
       "author": {
         "name": "Darrell Ross"
       }
+    },
+    {
+      "name": "context-bootstrapper",
+      "version": "1.0.0",
+      "source": "./plugins/context-bootstrapper",
+      "description": "Bootstraps durable AI context from fragmented project information.",
+      "license": "MIT",
+      "author": {
+        "name": "Darrell Ross"
+      }
     }
   ]
 }
