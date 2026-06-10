@@ -1,0 +1,10 @@
+{
+  "name": "context-bootstrapper",
+  "version": "1.0.0",
+  "description": "A skill for bootstrapping durable project context from messy notes, screenshots, conversations, repositories, and partial designs.",
+  "author": {
+    "name": "Darrell Ross"
+  },
+  "license": "MIT",
+  "primitives": ["skills"]
+}
