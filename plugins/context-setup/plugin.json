@@ -1,0 +1,10 @@
+{
+  "name": "context-setup",
+  "version": "1.0.0",
+  "description": "Personal project context management system for engineers – structured Markdown + YAML that gives your AI assistant persistent, organized memory across sessions.",
+  "author": {
+    "name": "Darrell Ross"
+  },
+  "license": "MIT",
+  "primitives": ["skills"]
+}
