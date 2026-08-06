@@ -21,9 +21,20 @@
     },
     {
       "name": "context-setup",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/context-setup",
-      "description": "Personal project context management system for engineers – structured Markdown + YAML that gives your AI assistant persistent, organized memory across sessions and machines.",
+      "description": "Personal project context management system for engineers – structured Markdown + YAML that gives your AI assistant persistent, organized memory across sessions and machines. Auto-maps each project's workspace folders into per-project permissions.",
+      "license": "MIT",
+      "author": {
+        "name": "Darrell Ross"
+      }
+    }
+  ,
+    {
+      "name": "pahf",
+      "version": "0.1.0",
+      "source": "./plugins/pahf",
+      "description": "Personalized Agents from Human Feedback — PAHF loop for Small Brain: pre-action clarify, ground in memory, post-action correct, compress to principles.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"
