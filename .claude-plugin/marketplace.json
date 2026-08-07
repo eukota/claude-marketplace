@@ -34,7 +34,18 @@
       "name": "pahf",
       "version": "0.1.0",
       "source": "./plugins/pahf",
-      "description": "Personalized Agents from Human Feedback — PAHF loop for Small Brain: pre-action clarify, ground in memory, post-action correct, compress to principles.",
+      "description": "Deprecated — superseded by small-brain.",
+      "license": "MIT",
+      "author": {
+        "name": "Darrell Ross"
+      }
+    }
+  ,
+    {
+      "name": "small-brain",
+      "version": "0.1.0",
+      "source": "./plugins/small-brain",
+      "description": "Small Brain: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"

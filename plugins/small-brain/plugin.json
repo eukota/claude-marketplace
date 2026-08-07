@@ -1,0 +1,10 @@
+{
+  "name": "small-brain",
+  "version": "0.1.0",
+  "description": "Small Brain: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
+  "author": {
+    "name": "Darrell Ross"
+  },
+  "license": "MIT",
+  "primitives": ["skills", "hooks", "rules"]
+}
