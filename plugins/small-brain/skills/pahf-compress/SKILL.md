@@ -9,12 +9,12 @@ description: Run the distillation loop — extract principles from recent decisi
 
 1. **List brains and ask which to compress (or all):**
    ```bash
-   python3 ~/.claude/plugins/small-brain/scripts/brain.py list
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/brain.py list
    ```
 
 2. **Run compression with split detection:**
    ```bash
-   python3 ~/.claude/plugins/small-brain/scripts/compress.py \
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/compress.py \
      --brain-id <brain-id> \
      --num-recent 20 \
      --detect-split
@@ -31,7 +31,7 @@ description: Run the distillation loop — extract principles from recent decisi
 
 6. **Run meta-principle extraction** if 2+ principles exist:
    ```bash
-   python3 ~/.claude/plugins/small-brain/scripts/compress.py \
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/compress.py \
      --brain-id <brain-id> \
      --meta-only
    ```

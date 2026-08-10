@@ -1,0 +1,10 @@
+{
+  "name": "plan-usage",
+  "version": "1.0.0",
+  "description": "Tracks Claude account rate-limit usage (5-hour and 7-day windows) from the status line, and reports whether your plan is the constraint on your work.",
+  "author": {
+    "name": "Darrell Ross"
+  },
+  "license": "MIT",
+  "primitives": ["commands", "skills"]
+}

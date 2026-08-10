@@ -9,7 +9,7 @@ description: Set up Small Brain — create the first brain, configure settings, 
 
 1. **Check for existing brains:**
    ```bash
-   python3 ~/.claude/plugins/small-brain/scripts/brain.py list
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/brain.py list
    ```
 
 2. **If no brains exist**, ask the user:
@@ -18,7 +18,7 @@ description: Set up Small Brain — create the first brain, configure settings, 
 
 3. **Create the brain:**
    ```bash
-   python3 ~/.claude/plugins/small-brain/scripts/brain.py create \
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/brain.py create \
      --name "<name>" \
      --domain "<domain>" \
      --description "<one sentence>"

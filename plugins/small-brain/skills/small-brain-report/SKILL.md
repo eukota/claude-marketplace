@@ -8,7 +8,7 @@ description: Generate a Small Brain status report — brains, memory state, deci
 Run the report script and present the output:
 
 ```bash
-python3 ~/.claude/plugins/small-brain/scripts/report.py
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/report.py
 ```
 
 After showing the report, offer:
