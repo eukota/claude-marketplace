@@ -15,7 +15,7 @@ description: Import a brain from a portable JSON export. Supports provisional tr
 
 4. **Run import:**
    ```bash
-   python3 ~/.claude/plugins/small-brain/scripts/import_brain.py \
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/import_brain.py \
      <path/to/export.json> \
      --trust <provisional|full> \
      [--rename <new-name>]

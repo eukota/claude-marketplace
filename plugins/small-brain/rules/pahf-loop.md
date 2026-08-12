@@ -24,7 +24,7 @@ When the user says you got something wrong, redirects you, or states a preferenc
 2. Identify what principle this establishes or modifies.
 3. Write it to memory immediately:
    ```bash
-   python3 ~/.claude/plugins/small-brain/scripts/write.py correction \
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/write.py correction \
      --brain-id <brain-id> \
      --decision-id <decision-id-if-known> \
      --feedback "<what user said>" \
@@ -39,7 +39,7 @@ Do this quietly. One line. Do not over-explain.
 
 After making a significant decision, log it:
 ```bash
-python3 ~/.claude/plugins/small-brain/scripts/write.py decision \
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/write.py decision \
   --brain-id <brain-id> \
   --context "<what the situation was>" \
   --decision "<what you decided>" \

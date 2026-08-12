@@ -13,7 +13,7 @@
       "name": "plugin-builder",
       "version": "1.1.0",
       "source": "./plugins/plugin-builder",
-      "description": "Tools for building Claude marketplace plugins — choosing primitives, scaffolding structure, and following conventions.",
+      "description": "Tools for building Claude marketplace plugins \u2014 choosing primitives, scaffolding structure, and following conventions.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"
@@ -23,29 +23,37 @@
       "name": "context-setup",
       "version": "1.1.0",
       "source": "./plugins/context-setup",
-      "description": "Personal project context management system for engineers – structured Markdown + YAML that gives your AI assistant persistent, organized memory across sessions and machines. Auto-maps each project's workspace folders into per-project permissions.",
+      "description": "Personal project context management system for engineers \u2013 structured Markdown + YAML that gives your AI assistant persistent, organized memory across sessions and machines. Auto-maps each project's workspace folders into per-project permissions.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"
       }
-    }
-  ,
+    },
     {
       "name": "pahf",
       "version": "0.1.0",
       "source": "./plugins/pahf",
-      "description": "Deprecated — superseded by small-brain.",
+      "description": "Deprecated \u2014 superseded by small-brain.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"
       }
-    }
-  ,
+    },
     {
       "name": "small-brain",
       "version": "0.1.0",
       "source": "./plugins/small-brain",
       "description": "Small Brain: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
+      "license": "MIT",
+      "author": {
+        "name": "Darrell Ross"
+      }
+    },
+    {
+      "name": "plan-usage",
+      "version": "1.0.0",
+      "source": "./plugins/plan-usage",
+      "description": "Tracks Claude account rate-limit usage (5-hour and 7-day windows) from the status line, and reports whether your plan is the constraint on your work.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"

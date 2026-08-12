@@ -5,7 +5,7 @@ description: Helps you decide which Claude primitive to build — skill, command
 
 # Choosing the Right Claude Primitive
 
-Use `claude-primitives.md` as the canonical reference for what each primitive is and when to use it.
+Use `references/claude-primitives.md` as the canonical reference for what each primitive is and when to use it.
 
 ## Process
 
@@ -13,7 +13,7 @@ Ask one question at a time. Start broad, then narrow.
 
 **Opening question:** "What do you want to happen, and when does it need to happen?"
 
-Then use the Quick Decision Matrix from `claude-primitives.md` to guide the conversation:
+Then use the Quick Decision Matrix from `references/claude-primitives.md` to guide the conversation:
 
 | Need | Use |
 |------|-----|

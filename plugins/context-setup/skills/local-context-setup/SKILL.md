@@ -1,3 +1,8 @@
+---
+name: local-context-setup
+description: Sets up the personal context management system on a new machine — creates the context directory, project index, and per-project structure, then wires CLAUDE.md to read them. Invoke explicitly; it writes a directory tree under the user's home.
+---
+
 # context-setup: local-context-setup
 
 Set up the Inception personal context management system on this machine.

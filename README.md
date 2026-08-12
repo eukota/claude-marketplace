@@ -13,19 +13,48 @@ Plugins live in `plugins/<plugin-name>/`. Each plugin bundles one or more Claude
 - **Agents** — specialized subagent definitions
 - **MCP Servers** — Model Context Protocol servers
 
+## Plugins
+
+| Plugin | What it's for |
+|---|---|
+| [`plugin-builder`](plugins/plugin-builder/) | Choosing a primitive, scaffolding a plugin, and following the conventions in this repo. |
+| [`context-setup`](plugins/context-setup/) | Personal project context management — structured Markdown + YAML giving Claude persistent memory across sessions and machines. |
+| [`small-brain`](plugins/small-brain/) | Multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration. |
+| [`plan-usage`](plugins/plan-usage/) | Tracks account rate-limit usage (5-hour and 7-day windows) from the status line and reports whether your plan is the constraint on your work. |
+| [`pahf`](plugins/pahf/) | **Deprecated** — superseded by `small-brain`. Requires a checkout outside this marketplace and is not portable. |
+
+Install any of them with:
+
+```
+/plugin install <plugin-name>@eukota-claude-marketplace
+```
+
 ## Plugin Structure
 
 ```
 plugins/<plugin-name>/
-├── plugin.json       # metadata: name, version, description, author, primitives
-├── README.md         # usage docs
-├── skills/           # (if applicable)
-├── commands/         # (if applicable)
-├── rules/            # (if applicable)
-├── hooks/            # (if applicable)
-├── agents/           # (if applicable)
-└── mcp-servers/      # (if applicable)
+├── .claude-plugin/
+│   └── plugin.json           # metadata: name, version, description, author, primitives
+├── README.md                 # usage docs
+├── skills/<skill-name>/
+│   ├── SKILL.md              # frontmatter with name + description drives selection
+│   └── references/           # material the skill consults (not itself a skill)
+├── commands/                 # (if applicable)
+├── rules/                    # (if applicable)
+├── hooks/                    # (if applicable)
+├── agents/                   # (if applicable)
+├── scripts/                  # supporting executables (if applicable)
+└── mcp-servers/              # (if applicable)
 ```
+
+Two of these are load-bearing rather than stylistic: a skill is only discovered
+at `skills/<skill-name>/SKILL.md`, and it is only selected on the strength of
+its frontmatter `description`. A flat `skills/<skill-name>.md`, or a `SKILL.md`
+without frontmatter, is invisible.
+
+Anything a plugin ships is referenced through `${CLAUDE_PLUGIN_ROOT}` — never an
+absolute path, and never a hardcoded install location. See [CLAUDE.md](CLAUDE.md)
+for the full conventions.
 
 ## Not Sure What to Build?
 
