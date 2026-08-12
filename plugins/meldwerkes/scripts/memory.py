@@ -98,6 +98,7 @@ class Settings:
     principle_auto_answer: bool = True   # Auto-apply principles without asking user
     conflict_resolution: str = "auto"    # "auto" or "manual"
     confidence_half_life_days: float = 180.0  # principle confidence halves after this many days; 0 disables
+    capture_enabled: bool = True         # master switch: when off, nothing is written to the store
 
 
 class MemoryStore:
@@ -345,7 +346,8 @@ class MemoryStore:
         return Settings(
             principle_auto_answer=data.get("principle_auto_answer", True),
             conflict_resolution=data.get("conflict_resolution", "auto"),
-            confidence_half_life_days=data.get("confidence_half_life_days", 180.0)
+            confidence_half_life_days=data.get("confidence_half_life_days", 180.0),
+            capture_enabled=data.get("capture_enabled", True)
         )
 
     @staticmethod
@@ -355,5 +357,46 @@ class MemoryStore:
             json.dump({
                 "principle_auto_answer": settings.principle_auto_answer,
                 "conflict_resolution": settings.conflict_resolution,
-                "confidence_half_life_days": settings.confidence_half_life_days
+                "confidence_half_life_days": settings.confidence_half_life_days,
+                "capture_enabled": settings.capture_enabled
             }, f, indent=2)
+
+
+CHECKPOINT_DIR = DATA_DIR / "checkpoints"
+
+
+def checkpoint(db_path: Path, label: str) -> Optional[Path]:
+    """Copy the store aside before a mutation.
+
+    Principles are derived from decisions, so undoing a bulk change by deleting
+    rows leaves principles whose support no longer exists. Snapshotting the
+    whole file avoids reconstructing that after the fact — and SQLite stores
+    this small make it nearly free.
+    """
+    import shutil
+    if not Path(db_path).exists():
+        return None
+    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in label)[:40]
+    dest = CHECKPOINT_DIR / f"{stamp}__{safe}.db"
+    shutil.copy2(db_path, dest)
+    return dest
+
+
+def list_checkpoints() -> list:
+    if not CHECKPOINT_DIR.exists():
+        return []
+    return sorted(CHECKPOINT_DIR.glob("*.db"), reverse=True)
+
+
+def restore_checkpoint(snapshot: Path, db_path: Path) -> Path:
+    """Restore a snapshot, checkpointing the current state first.
+
+    Restoring is itself a mutation, so it gets its own checkpoint — otherwise
+    undo becomes a one-way door.
+    """
+    import shutil
+    checkpoint(db_path, "pre-restore")
+    shutil.copy2(snapshot, db_path)
+    return db_path

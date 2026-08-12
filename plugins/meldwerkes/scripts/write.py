@@ -34,6 +34,13 @@ def main():
     parser.add_argument("--db", default=str(DEFAULT_DB))
     args = parser.parse_args()
 
+    # Hard guard: a toggle enforced only by prompt instructions leaks. The
+    # storage layer is the one place a refusal is reliable.
+    if not MemoryStore.load_settings().capture_enabled and args.type != "confirm":
+        print("Capture is OFF — nothing written. Re-enable with: "
+              "history.py capture --on", file=sys.stderr)
+        sys.exit(0)
+
     store = MemoryStore(Path(args.db))
 
     if args.type == "decision":
