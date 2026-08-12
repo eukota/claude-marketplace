@@ -30,16 +30,6 @@
       }
     },
     {
-      "name": "pahf",
-      "version": "0.1.0",
-      "source": "./plugins/pahf",
-      "description": "Deprecated \u2014 superseded by small-brain.",
-      "license": "MIT",
-      "author": {
-        "name": "Darrell Ross"
-      }
-    },
-    {
       "name": "small-brain",
       "version": "0.1.0",
       "source": "./plugins/small-brain",
