@@ -1,114 +1,104 @@
 ---
 name: meldwerkes-bootstrap
-description: Pretrain a mind from existing Claude Code chat history — extracts durable preferences from past corrections and directives, writes them with their original timestamps, and reports the principles found with decay-adjusted confidence. Use when starting a new mind and wanting it seeded from prior work rather than empty.
+description: Pretrain minds from existing Claude Code chat history in two phases — survey what domains are present and propose a set of minds, then create them and import. Use when starting from scratch and wanting the model seeded from prior work rather than empty.
 ---
 
-# Bootstrap a Mind from Chat History
+# Bootstrap Minds from Chat History
 
 Starting empty means re-teaching preferences already stated many times. This
-reads existing transcripts under `~/.claude/projects/`, extracts durable
-preferences, and writes them into a brain with the timestamps they were
-actually expressed — so temporal decay is meaningful rather than uniform.
+reads existing transcripts, works out what domains of judgment are present,
+proposes a set of minds, and — once the user approves — creates them.
 
-## Before running
+Two phases, deliberately. **Bootstrap is the one moment the whole corpus is
+visible at once**, which is a far better position for deciding how judgment
+clusters than incremental observation ever gets. The plan file between the
+phases is where that view becomes editable.
 
-**Always bootstrap into a fresh brain, never an established one.** The import
-is a bulk write of inferred preferences; it should be reviewable and
-discardable on its own. Merging into a primary brain before review risks
-polluting real accumulated signal with misclassifications.
-
-Check what exists:
+## Phase 1 — Survey
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/brain.py list
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.py survey --out bootstrap-plan.json
 ```
 
-If there is no suitable target, create one:
+Creates nothing. It classifies each real user turn, assigns a **domain**, and
+clusters the results into suggested minds.
+
+Bound it if history is large: `--since YYYY-MM-DD`, `--limit N`. Adjust
+`--min-confidence` (default 0.5) if too few or too many signals surface, and
+`--min-signals` (default 15) to change how much evidence a domain needs before
+it justifies its own mind.
+
+**Present the survey to the user and stop.** Walk them through:
+
+- Which domains appeared, and how much signal each has
+- Which have enough to stand alone, and which are proposed for merging
+- The sample principles per domain — these are the fastest way to judge whether
+  the classifier understood their work
+
+Ask whether the proposed split matches how they actually think. They will know
+things the clustering cannot: that two domains are really one, that a domain is
+a project rather than a kind of judgment, that a small cluster matters more
+than its count suggests.
+
+## Phase 2 — Edit the plan, then apply
+
+The plan is JSON and meant to be edited. Offer to make these changes for them:
+
+| To do this | Change |
+|---|---|
+| Skip a domain | `"create": false` |
+| Rename a mind | `"brain_name": "..."` |
+| Import into an existing mind | `"brain_id": "<id>"` |
+| Move signals between minds | edit that signal's `"domain"` |
+| Merge two domains | set both signals' `domain` to the same value |
+
+Always dry-run before writing:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/brain.py create \
-  --name "Bootstrap import" --domain general \
-  --description "Seeded from chat history; review before trusting"
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.py apply --plan bootstrap-plan.json --dry-run
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.py apply --plan bootstrap-plan.json
 ```
 
-## Process
+Apply checkpoints the store first and prints the undo command. Surface that to
+the user — it is the difference between a reversible import and a leap.
 
-### 1. Always dry-run first
+## After applying
+
+**No principles exist yet.** Bootstrap imports decisions and corrections;
+principles come from compression. The apply output prints the exact command per
+mind:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.py \
-  --brain-id <brain-id> --dry-run
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/compress.py --brain-id <id> --detect-split
 ```
 
-This classifies and reports without writing. Show the user the report and let
-them judge quality before anything is committed to the store.
+Run it per mind, then `/meldwerkes-review` to look at what was derived, and
+`/meldwerkes-calibrate` once there are principles worth testing.
 
-If too few principles surface, suggest `--min-confidence 0.3` (default 0.5).
-If too many low-quality ones appear, suggest raising it.
+## Judgment
 
-### 2. Bound the run if history is large
+**Do not apply a plan the user has not looked at.** The whole point of two
+phases is that the structure is inspectable before it is built. Applying a
+survey straight through defeats it.
 
-- `--since YYYY-MM-DD` — skip old transcripts whose preferences may be stale
-- `--limit N` — cap exchanges examined
+**Domains are kinds of judgment, not projects.** If the survey produces domains
+that are really repo names, the classifier keyed on the wrong thing — say so
+and suggest merging them into judgment-shaped domains instead.
 
-Classification costs one model call per 20 exchanges, so a few hundred turns
-is a handful of calls, not hundreds.
+**Small domains are not automatically noise.** A domain with six signals may be
+a real area the user rarely discusses in chat. Ask rather than assuming the
+threshold was right.
 
-### 3. Write, once the dry run looks right
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.py --brain-id <brain-id>
-```
-
-### 4. Present the report
-
-The script prints it. Read it back to the user rather than just echoing —
-specifically call out:
-
-- **Principles whose effective confidence dropped well below stated
-  confidence.** Those are old, and may reflect preferences since changed.
-- **The correction/directive/answer mix.** Corrections are the strongest
-  signal; a run dominated by `answer` is weaker and worth treating with more
-  suspicion.
-- **Anything that looks like a project fact rather than a preference.** That
-  is the known hard case, and the user is the only one who can tell.
-
-### 5. Offer next steps
-
-- `/pahf-compress` to derive meta-principles from the imported decisions
-- `/meldwerkes-report` to review the brain
-- Discard and re-run with different thresholds if quality is poor
-
-## Temporal decay
-
-Principle confidence decays exponentially with age. The half-life is
-`confidence_half_life_days` in settings (default 180 — confidence halves every
-six months). A principle stated confidently two years ago carries little weight
-today unless it has been reinforced since.
-
-Set `0` to disable decay entirely:
-
-```python
-import json, pathlib
-p = pathlib.Path.home() / '.small-brain/settings.json'
-s = json.loads(p.read_text()) if p.exists() else {}
-s['confidence_half_life_days'] = 180
-p.write_text(json.dumps(s, indent=2))
-```
-
-## Honest caveats to raise with the user
+## Caveats to state plainly
 
 **Selection bias.** Transcripts over-represent friction — they capture where
 things went wrong far more than where they went right. A mind built only from
-them skews pessimistic about its owner's own process.
+them skews pessimistic.
 
 **Fact versus principle.** "Use Postgres here" and "I prefer boring
 infrastructure" look identical in text. The classifier is instructed to be
-strict, but it will get some wrong in both directions.
+strict, and will still get some wrong in both directions.
 
-**Drift.** Old preferences may have been superseded. Decay handles this
-statistically; it does not handle a reversal, where the old principle is not
-merely weaker but wrong.
-
-Do not oversell the result. It is a starting point that saves re-teaching, not
-a finished model.
+**Drift.** Old preferences may have been superseded. Original timestamps are
+preserved so decay handles this statistically, but decay cannot handle a
+reversal — where the old principle is not weaker but wrong.

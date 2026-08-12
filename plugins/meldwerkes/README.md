@@ -23,7 +23,7 @@ Creates your first brain, configures settings, verifies memory store.
 | Skill | Purpose |
 |---|---|
 | `/meldwerkes-setup` | Create a brain, configure settings |
-| `/meldwerkes-bootstrap` | Pretrain a mind from existing chat history |
+| `/meldwerkes-bootstrap` | Survey chat history, propose minds, then create and import |
 | `/meldwerkes-review` | Review principles; reinforce, weaken, revise, retire |
 | `/meldwerkes-calibrate` | Test how well the mind predicts you; r, calibration, per-domain |
 | `/meldwerkes-capture` | Turn learning on/off; check whether it is recording |
