@@ -1,9 +1,9 @@
 ---
-name: small-brain-export
+name: meldwerkes-export
 description: Export a brain to a portable JSON file for backup, sharing, or transfer.
 ---
 
-# Small Brain Export
+# Meldwerkes Export
 
 1. **List brains:**
    ```bash

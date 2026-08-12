@@ -44,3 +44,31 @@ Guides you to the right Claude primitive for what you want to build. Asks a few 
 Creates a complete plugin scaffold — directory structure, `plugin.json`, `README.md`, primitive subdirectories, and registers the plugin in `marketplace.json`. Commits the result.
 
 **Use when:** You're ready to start a new plugin and want the boilerplate wired up correctly from the start.
+
+## Scripts
+
+### `scripts/namecheck.py`
+
+Checks candidate plugin names against npm, PyPI, crates.io, GitHub repo names,
+and DNS for `.com`/`.ai`, and prints a verdict per name.
+
+```bash
+export GITHUB_TOKEN=$(gh auth token)   # optional; raises the GitHub search rate limit
+python3 scripts/namecheck.py cairn meldwerkes plangent
+```
+
+**Use when:** naming a new plugin, before you get attached to one.
+
+Uniqueness is a filtering outcome, not a generation outcome — so generate a
+wide list of candidates and let this decide. Two findings from checking ~40
+names are worth knowing going in:
+
+- **Every dictionary word is taken**, no matter how obscure. `midden`,
+  `heddle`, `adversaria`, `colophon`, and `hypomnema` are all registered on
+  both npm and PyPI.
+- **Short pronounceable coinages are worse**, because they are exactly what
+  brandable-name generators emit.
+- **Two-morpheme compounds are wide open.** Every `-werk(s)` candidate tested
+  came back with zero GitHub repos and every registry and domain free.
+
+So reach for a compound, not a rarer word.

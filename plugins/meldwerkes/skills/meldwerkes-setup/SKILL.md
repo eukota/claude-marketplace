@@ -1,9 +1,9 @@
 ---
-name: small-brain-setup
-description: Set up Small Brain — create the first brain, configure settings, verify the memory store is ready.
+name: meldwerkes-setup
+description: Set up Meldwerkes — create the first brain, configure settings, verify the memory store is ready.
 ---
 
-# Small Brain Setup
+# Meldwerkes Setup
 
 ## Steps
 
@@ -45,5 +45,5 @@ description: Set up Small Brain — create the first brain, configure settings, 
 6. **Confirm setup complete.** Tell the user:
    - Brain ID (first 8 chars)
    - Memory location: `~/.small-brain/memory.db`
-   - How to check status: `/small-brain-report`
+   - How to check status: `/meldwerkes-report`
    - The loop is now running passively — no mode to enter

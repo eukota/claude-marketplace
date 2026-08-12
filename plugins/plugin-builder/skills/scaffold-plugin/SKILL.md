@@ -24,7 +24,10 @@ The marketplace repo is at `~/Development/claude-marketplace`. All paths below a
 
 Ask the user for (one at a time, only what's missing):
 
-- **Plugin name** — kebab-case, becomes the directory name
+- **Plugin name** — kebab-case, becomes the directory name. Before accepting it,
+  run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/namecheck.py <name>` and report the
+  result. If it comes back TAKEN or crowded, say so and offer alternatives —
+  compounds fare far better than single words, however obscure.
 - **Description** — one sentence, what does this plugin do?
 - **Primitives** — which types does it include? (skills, commands, rules, hooks, agents, mcp-servers). Can be one or many.
 

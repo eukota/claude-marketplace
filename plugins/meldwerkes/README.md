@@ -1,4 +1,4 @@
-# small-brain
+# meldwerkes
 
 Multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.
 
@@ -13,7 +13,7 @@ Runs three loops passively as you work:
 ## Getting Started
 
 ```
-/small-brain-setup
+/meldwerkes-setup
 ```
 
 Creates your first brain, configures settings, verifies memory store.
@@ -22,15 +22,15 @@ Creates your first brain, configures settings, verifies memory store.
 
 | Skill | Purpose |
 |---|---|
-| `/small-brain-setup` | Create a brain, configure settings |
-| `/small-brain-report` | Status report: brains, decisions, principles, stats |
+| `/meldwerkes-setup` | Create a brain, configure settings |
+| `/meldwerkes-report` | Status report: brains, decisions, principles, stats |
 | `/pahf-compress` | Run distillation loop; detect brain split signals |
-| `/small-brain-export` | Export a brain to portable JSON |
-| `/small-brain-import` | Import a brain (provisional or full trust) |
+| `/meldwerkes-export` | Export a brain to portable JSON |
+| `/meldwerkes-import` | Import a brain (provisional or full trust) |
 
 ## Settings
 
-Two toggles (configured during setup or via `/small-brain-setup`):
+Two toggles (configured during setup or via `/meldwerkes-setup`):
 
 - **Principle auto-answer** — when `on`, principles are applied silently without confirming with you first.
 - **Conflict resolution** — when `auto`, orchestrator resolves conflicts via principles; when `manual`, always asks you.

@@ -1,14 +1,14 @@
 # pahf
 
-> **Unpublished and deprecated — superseded by [`small-brain`](../small-brain/).**
+> **Unpublished and deprecated — superseded by [`meldwerkes`](../meldwerkes/).**
 > This plugin is no longer listed in the marketplace registry and cannot be
 > installed. It is kept here as an archived experiment.
 > This plugin calls scripts in `~/Development/small-brain-alpha/`, a checkout
 > outside this marketplace, so it does not work on any other machine. Use
-> `small-brain`, which ships its own scripts and references them through
+> `meldwerkes`, which ships its own scripts and references them through
 > `${CLAUDE_PLUGIN_ROOT}`.
 
-Personalized Agents from Human Feedback — PAHF loop for Small Brain.
+Personalized Agents from Human Feedback — PAHF loop for Meldwerkes.
 
 Runs the three-step PAHF loop as Claude Code skills and rules, backed by a persistent SQLite memory store. No separate client — the loop is wired into Claude's behavior.
 

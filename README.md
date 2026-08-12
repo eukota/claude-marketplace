@@ -19,7 +19,7 @@ Plugins live in `plugins/<plugin-name>/`. Each plugin bundles one or more Claude
 |---|---|
 | [`plugin-builder`](plugins/plugin-builder/) | Choosing a primitive, scaffolding a plugin, and following the conventions in this repo. |
 | [`context-setup`](plugins/context-setup/) | Personal project context management — structured Markdown + YAML giving Claude persistent memory across sessions and machines. |
-| [`small-brain`](plugins/small-brain/) | Multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration. |
+| [`meldwerkes`](plugins/meldwerkes/) | Multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration. |
 | [`plan-usage`](plugins/plan-usage/) | Tracks account rate-limit usage (5-hour and 7-day windows) from the status line and reports whether your plan is the constraint on your work. |
 
 Install any of them with:
