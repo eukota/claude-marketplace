@@ -58,6 +58,29 @@ Brains are portable. Export a brain to JSON, import it on another machine or sha
 - `anthropic` SDK (for distillation loop only): `pip install anthropic`
 - All other features use stdlib only
 
+## Mind, not brain
+
+The terminology is deliberate where it appears. *Brain* emulation belongs to a
+different tradition — neurons, connectomes, substrate-level simulation,
+bottom-up. Its fidelity question is whether you have modeled the hardware.
+
+Language models do not operate at that level and will not by this route. They
+work over tokens and meaning, which is the functional level: dispositions,
+judgment, what someone would decide and why. That is a *mind*, and it is
+substrate-independent by construction.
+
+The distinction decides what can be evaluated. Brain-level fidelity is
+inaccessible here. Mind-level fidelity is behaviorally testable: does it decide
+the way its owner decides, and can it say why.
+
+It also explains what this is not. A log of events is neither brain nor mind —
+it sits below both, recording activity rather than disposition. Recall layers
+do not become minds by accumulating more.
+
+(Inside the system, a *brain* remains the concrete thing on disk: one store of
+decisions, corrections, and principles. The modest noun fits the artifact; the
+ambitious one describes the level being modeled.)
+
 ## Where this could go
 
 Meldwerkes is early, and the substrate it builds — a derived model of how one
@@ -85,10 +108,39 @@ Needs everything above, plus a much higher bar on the two things that are cheap
 to defer and expensive to retrofit — traceability from decision back to
 evidence, and calibration about what it does not know.
 
-**A team brain.** Multi-brain orchestration was built for one person's
+**A team mind.** Multi-brain orchestration was built for one person's
 inconsistency across domains, but the same machinery could model where a *team*
 agrees and where it does not. A different product, reachable from the same
 foundation.
+
+### What a mind has that this does not, yet
+
+Naming the level honestly also names the gaps. A mind is more than judgment,
+and each missing piece is a plausible growth direction rather than an
+embarrassment:
+
+**Perception.** Input arrives only as conversation — what the owner said and
+corrected. A mind takes in the world directly. The nearer version here is
+reading the artifacts themselves (the code, the document, the diff) rather than
+only the discussion about them, forming principles from what it observed rather
+than what it was told.
+
+**Episodic memory.** Decisions and corrections are stored with timestamps and
+context, but they function as *evidence* — fuel for deriving principles — not
+as experience that can be recalled. "The time we tried this and it broke" is
+not something the system can currently say. Retrieval as narrative is a
+different capability from the one already built.
+
+**Affect.** Every principle carries confidence but no valence. Nothing
+distinguishes a preference held mildly from one felt strongly, or records what
+frustrates and energizes. Judgment without weight is flatter than the thing it
+models.
+
+**A self-model.** Per-principle confidence exists; a model of the model does
+not. The system cannot say where its coverage is thin, which domains it has
+never seen its owner decide in, or how its picture of them has shifted over
+time. This one gates the others — knowing what it does not know is the
+precondition for letting it act.
 
 These are not a roadmap and several are mutually exclusive in practice. The
 design constraints worth holding regardless of direction: input stays
