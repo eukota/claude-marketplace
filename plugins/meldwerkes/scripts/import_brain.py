@@ -94,7 +94,7 @@ def main():
     print(f"  {stats.get('total_decisions', '?')} decisions, {stats.get('principles', '?')} principles")
     print(f"  New brain ID: {new_brain_id}")
     if args.trust == "provisional":
-        print("  Tip: use /small-brain-report to review, then run /pahf-compress to re-evaluate confidence.")
+        print("  Tip: use /meldwerkes-report to review, then run /pahf-compress to re-evaluate confidence.")
 
 
 if __name__ == "__main__":

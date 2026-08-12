@@ -27,7 +27,7 @@ description: Run the distillation loop — extract principles from recent decisi
 5. **If `SPLIT_SIGNAL` appears in output**, surface it to the user:
    > "The distillation loop found two principle clusters that keep conflicting. This may mean they represent different viewing angles — for example, your SRE thinking vs. your maker thinking. Should I create a second brain for one of these clusters?"
    
-   If yes: use `/small-brain-setup` to create the new brain, then note which principles migrate to it.
+   If yes: use `/meldwerkes-setup` to create the new brain, then note which principles migrate to it.
 
 6. **Run meta-principle extraction** if 2+ principles exist:
    ```bash

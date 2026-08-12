@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Query Small Brain memory — called by session-start hook and pahf-ground skill."""
+"""Query Meldwerkes memory — called by session-start hook and pahf-ground skill."""
 
 import argparse
 import sys

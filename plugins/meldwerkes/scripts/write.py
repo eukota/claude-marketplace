@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write decisions and corrections to Small Brain memory."""
+"""Write decisions and corrections to Meldwerkes memory."""
 
 import argparse
 import sys

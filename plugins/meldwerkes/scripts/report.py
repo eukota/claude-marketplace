@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Small Brain status report."""
+"""Generate Meldwerkes status report."""
 
 import sys
 import os
@@ -45,7 +45,7 @@ def main():
         return
 
     # Text report
-    print(f"Small Brain Status Report — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    print(f"Meldwerkes Status Report — {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     print("=" * 60)
     print(f"\nSettings:")
     print(f"  Principle auto-answer: {'on' if settings.principle_auto_answer else 'off'}")
@@ -79,7 +79,7 @@ def main():
 
     if not brains:
         print("\n  No brains registered yet.")
-        print("  Use /small-brain-setup to create your first brain.")
+        print("  Use /meldwerkes-setup to create your first brain.")
 
 
 if __name__ == "__main__":

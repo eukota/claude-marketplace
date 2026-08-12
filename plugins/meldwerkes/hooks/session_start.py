@@ -18,7 +18,7 @@ try:
     if not brains:
         sys.exit(0)
 
-    lines = ["## Small Brain Active"]
+    lines = ["## Meldwerkes Active"]
     lines.append(f"Brains: {len(brains)} | Principle auto-answer: {'on' if settings.principle_auto_answer else 'off'} | Conflict resolution: {settings.conflict_resolution}")
     lines.append("")
 

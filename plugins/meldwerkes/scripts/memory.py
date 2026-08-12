@@ -1,4 +1,4 @@
-"""Small Brain memory store — stdlib only, no external dependencies."""
+"""Meldwerkes memory store — stdlib only, no external dependencies."""
 
 import sqlite3
 import json
@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import Optional
 
 
+# Storage path predates the rename to meldwerkes and is deliberately
+# unchanged: renaming it would orphan every existing brain. Same reason
+# the export format key stays "small_brain_export".
 DATA_DIR = Path.home() / ".small-brain"
 DEFAULT_DB = DATA_DIR / "memory.db"
 SETTINGS_FILE = DATA_DIR / "settings.json"

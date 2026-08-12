@@ -11,9 +11,9 @@
   "plugins": [
     {
       "name": "plugin-builder",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "source": "./plugins/plugin-builder",
-      "description": "Tools for building Claude marketplace plugins \u2014 choosing primitives, scaffolding structure, and following conventions.",
+      "description": "Tools for building Claude marketplace plugins \u2014 choosing primitives, checking name availability, scaffolding structure, and following conventions.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"
@@ -30,10 +30,10 @@
       }
     },
     {
-      "name": "small-brain",
+      "name": "meldwerkes",
       "version": "0.1.0",
-      "source": "./plugins/small-brain",
-      "description": "Small Brain: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
+      "source": "./plugins/meldwerkes",
+      "description": "Meldwerkes: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"

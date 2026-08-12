@@ -1,9 +1,9 @@
 ---
-name: small-brain-import
+name: meldwerkes-import
 description: Import a brain from a portable JSON export. Supports provisional trust (confidence discounted) or full trust.
 ---
 
-# Small Brain Import
+# Meldwerkes Import
 
 1. **Ask for the export file path.**
 

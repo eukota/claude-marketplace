@@ -1,7 +1,7 @@
 {
   "name": "pahf",
   "version": "0.1.0",
-  "description": "Personalized Agents from Human Feedback — PAHF loop for Small Brain: pre-action clarify, ground in memory, post-action correct, compress to principles.",
+  "description": "Personalized Agents from Human Feedback — PAHF loop for Meldwerkes: pre-action clarify, ground in memory, post-action correct, compress to principles.",
   "author": {
     "name": "Darrell Ross"
   },
