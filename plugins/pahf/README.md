@@ -1,6 +1,8 @@
 # pahf
 
-> **Deprecated — superseded by [`small-brain`](../small-brain/).**
+> **Unpublished and deprecated — superseded by [`small-brain`](../small-brain/).**
+> This plugin is no longer listed in the marketplace registry and cannot be
+> installed. It is kept here as an archived experiment.
 > This plugin calls scripts in `~/Development/small-brain-alpha/`, a checkout
 > outside this marketplace, so it does not work on any other machine. Use
 > `small-brain`, which ships its own scripts and references them through
