@@ -2,6 +2,13 @@
 
 Multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.
 
+> **Part of the Mindclone project.** Meldwerkes is the shipping artifact;
+> *mindclone* is the larger goal it works toward — a model of how its owner
+> decides, not a record of what they did. That distinction drives the design:
+> input is corrections rather than events, principles are derived rather than
+> stored, and the model is exportable because it should belong to the person
+> it models, not to whoever hosts it.
+
 ## What It Does
 
 Runs three loops passively as you work:
