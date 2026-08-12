@@ -25,6 +25,7 @@ Creates your first brain, configures settings, verifies memory store.
 | `/meldwerkes-setup` | Create a brain, configure settings |
 | `/meldwerkes-bootstrap` | Pretrain a mind from existing chat history |
 | `/meldwerkes-review` | Review principles; reinforce, weaken, revise, retire |
+| `/meldwerkes-calibrate` | Test how well the mind predicts you; r, calibration, per-domain |
 | `/meldwerkes-report` | Status report: brains, decisions, principles, stats |
 | `/pahf-compress` | Run distillation loop; detect brain split signals |
 | `/meldwerkes-export` | Export a brain to portable JSON |
