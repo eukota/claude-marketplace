@@ -21,7 +21,6 @@ Plugins live in `plugins/<plugin-name>/`. Each plugin bundles one or more Claude
 | [`context-setup`](plugins/context-setup/) | Personal project context management — structured Markdown + YAML giving Claude persistent memory across sessions and machines. |
 | [`small-brain`](plugins/small-brain/) | Multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration. |
 | [`plan-usage`](plugins/plan-usage/) | Tracks account rate-limit usage (5-hour and 7-day windows) from the status line and reports whether your plan is the constraint on your work. |
-| [`pahf`](plugins/pahf/) | **Deprecated** — superseded by `small-brain`. Requires a checkout outside this marketplace and is not portable. |
 
 Install any of them with:
 
