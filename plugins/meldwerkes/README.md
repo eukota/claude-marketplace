@@ -23,6 +23,8 @@ Creates your first brain, configures settings, verifies memory store.
 | Skill | Purpose |
 |---|---|
 | `/meldwerkes-setup` | Create a brain, configure settings |
+| `/meldwerkes-bootstrap` | Pretrain a mind from existing chat history |
+| `/meldwerkes-review` | Review principles; reinforce, weaken, revise, retire |
 | `/meldwerkes-report` | Status report: brains, decisions, principles, stats |
 | `/pahf-compress` | Run distillation loop; detect brain split signals |
 | `/meldwerkes-export` | Export a brain to portable JSON |
@@ -36,6 +38,16 @@ Two toggles (configured during setup or via `/meldwerkes-setup`):
 - **Conflict resolution** — when `auto`, orchestrator resolves conflicts via principles; when `manual`, always asks you.
 
 Hard floor: if principles can't resolve a conflict, it always escalates to you regardless of settings.
+
+## Temporal decay
+
+Principle confidence decays exponentially with age — `confidence_half_life_days`
+in settings, default 180. A principle halves in weight every six months unless
+reaffirmed.
+
+Decay only forgets; `/meldwerkes-review` is the other half. Confirming a
+principle resets its clock, so what stays true stays strong and what goes
+unexamined fades. Set the half-life to `0` to disable decay entirely.
 
 ## Memory
 

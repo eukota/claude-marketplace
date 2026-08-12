@@ -17,6 +17,28 @@ DEFAULT_DB = DATA_DIR / "memory.db"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 
 
+def effective_confidence(confidence: float, timestamp: str,
+                         half_life_days: float, now: Optional[str] = None) -> float:
+    """Confidence discounted for age.
+
+    A principle learned two years ago should not carry the same weight as one
+    reinforced last week: people change their minds, and a mind that only
+    accumulates never reflects that. Exponential decay with a configurable
+    half-life — after `half_life_days`, a principle retains half its original
+    confidence. A half-life of 0 disables decay entirely.
+    """
+    if not half_life_days:
+        return confidence
+    try:
+        then = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return confidence
+    current = (datetime.fromisoformat(now.replace("Z", "+00:00")) if now
+               else datetime.now(then.tzinfo))
+    age_days = max((current - then).total_seconds() / 86400.0, 0.0)
+    return confidence * (0.5 ** (age_days / half_life_days))
+
+
 @dataclass
 class Brain:
     id: str
@@ -75,6 +97,7 @@ class MetaPrinciple:
 class Settings:
     principle_auto_answer: bool = True   # Auto-apply principles without asking user
     conflict_resolution: str = "auto"    # "auto" or "manual"
+    confidence_half_life_days: float = 180.0  # principle confidence halves after this many days; 0 disables
 
 
 class MemoryStore:
@@ -223,6 +246,60 @@ class MemoryStore:
                  json.dumps(principle.conflicting_decisions))
             )
 
+    def reinforce_principle(self, principle_id: str, boost: float = 0.05) -> bool:
+        """Reaffirm a principle: reset its clock and nudge confidence up.
+
+        Decay measures time since a principle was last affirmed, so reinforcing
+        resets the timestamp. Without this, review can only ever watch
+        confidence fall — the user needs a way to say "still true".
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT confidence FROM principles WHERE id = ?", (principle_id,)
+            ).fetchone()
+            if not row:
+                return False
+            new_conf = min(1.0, row[0] + boost)
+            conn.execute(
+                "UPDATE principles SET timestamp = ?, confidence = ? WHERE id = ?",
+                (datetime.now().isoformat(), new_conf, principle_id)
+            )
+        return True
+
+    def weaken_principle(self, principle_id: str, penalty: float = 0.25) -> bool:
+        """Mark a principle as less true than recorded, without deleting it.
+
+        A principle the user partly disagrees with is different from one that
+        was never true — keeping it with lowered confidence preserves the
+        provenance of the change.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT confidence FROM principles WHERE id = ?", (principle_id,)
+            ).fetchone()
+            if not row:
+                return False
+            conn.execute(
+                "UPDATE principles SET timestamp = ?, confidence = ? WHERE id = ?",
+                (datetime.now().isoformat(), max(0.0, row[0] - penalty), principle_id)
+            )
+        return True
+
+    def retire_principle(self, principle_id: str) -> bool:
+        """Remove a principle that is simply wrong."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute("DELETE FROM principles WHERE id = ?", (principle_id,))
+        return cur.rowcount > 0
+
+    def revise_principle(self, principle_id: str, text: str) -> bool:
+        """Replace a principle's wording, keeping its id and supporting history."""
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                "UPDATE principles SET principle = ?, timestamp = ? WHERE id = ?",
+                (text, datetime.now().isoformat(), principle_id)
+            )
+        return cur.rowcount > 0
+
     def get_principles(self, brain_id: str) -> list[Principle]:
         with sqlite3.connect(self.db_path) as conn:
             rows = conn.execute(
@@ -267,7 +344,8 @@ class MemoryStore:
             data = json.load(f)
         return Settings(
             principle_auto_answer=data.get("principle_auto_answer", True),
-            conflict_resolution=data.get("conflict_resolution", "auto")
+            conflict_resolution=data.get("conflict_resolution", "auto"),
+            confidence_half_life_days=data.get("confidence_half_life_days", 180.0)
         )
 
     @staticmethod
@@ -276,5 +354,6 @@ class MemoryStore:
         with open(SETTINGS_FILE, "w") as f:
             json.dump({
                 "principle_auto_answer": settings.principle_auto_answer,
-                "conflict_resolution": settings.conflict_resolution
+                "conflict_resolution": settings.conflict_resolution,
+                "confidence_half_life_days": settings.confidence_half_life_days
             }, f, indent=2)
