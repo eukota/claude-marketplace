@@ -11,9 +11,9 @@
   "plugins": [
     {
       "name": "plugin-builder",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "source": "./plugins/plugin-builder",
-      "description": "Tools for building Claude marketplace plugins \u2014 choosing primitives, checking name availability, scaffolding structure, and following conventions.",
+      "description": "Tools for building Claude marketplace plugins \u2014 choosing primitives, checking name availability, smoke-testing hooks, scaffolding structure, and following conventions.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"

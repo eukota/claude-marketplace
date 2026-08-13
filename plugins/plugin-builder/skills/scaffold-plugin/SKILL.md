@@ -114,3 +114,19 @@ Tell the user:
 - What was created (directory structure, files)
 - The next step: add actual content to the primitive files
 - Offer to help write the first primitive if they're ready
+
+## If the plugin declares hooks
+
+Smoke-test them before considering the scaffold done:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/hookcheck.py plugins/<plugin-name>
+```
+
+Hooks are the only primitive that can break a session outright. Fix anything it
+reports as an ERROR before committing — an exit 2, a timeout, or a blocking
+decision stops the user's turn, and to them it looks like Claude Code is broken.
+
+In particular, use `type: "command"` for anything passive. A `type: "prompt"`
+hook is a permission gate, and on a non-`Stop` event a negative answer stops
+the turn.
