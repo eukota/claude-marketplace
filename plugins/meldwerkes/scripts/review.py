@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from memory import MemoryStore, DEFAULT_DB, effective_confidence
+from memory import write_session_context
 
 
 def age_days(timestamp: str) -> float:
@@ -107,6 +108,9 @@ def main():
     elif args.cmd == "retire":
         ok = store.retire_principle(pid)
         print(f"Retired {pid[:8]}" if ok else f"Not found: {pid[:8]}")
+
+    # Injected context is precomputed, so it must be re-rendered on mutation.
+    write_session_context(Path(args.db))
 
 
 if __name__ == "__main__":

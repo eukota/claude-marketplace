@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from memory import MemoryStore, Principle, MetaPrinciple, DEFAULT_DB
+from memory import write_session_context
 from pathlib import Path
 
 try:
@@ -172,6 +173,8 @@ def main():
         store.save_principle(p)
         print(f"Principle: {p.principle} (confidence: {p.confidence:.0%})")
         print(f"  Supporting: {len(p.supporting_decisions)} | Conflicting: {len(p.conflicting_decisions)}")
+
+    write_session_context(Path(args.db))
 
     if not principles:
         return

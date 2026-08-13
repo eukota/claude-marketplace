@@ -400,3 +400,68 @@ def restore_checkpoint(snapshot: Path, db_path: Path) -> Path:
     checkpoint(db_path, "pre-restore")
     shutil.copy2(snapshot, db_path)
     return db_path
+
+
+SESSION_CONTEXT_FILE = DATA_DIR / "session-context.json"
+
+# Injected context is paid on every turn of a session, not once — so it is
+# capped by budget rather than by count-per-brain, which grows without limit as
+# minds accumulate.
+CONTEXT_MAX_PRINCIPLES = 12
+CONTEXT_MAX_METAS = 5
+CONTEXT_MAX_CHARS = 2000
+
+
+def write_session_context(db_path: Path = None) -> Optional[Path]:
+    """Precompute what SessionStart injects.
+
+    The SessionStart hook used to open the database and render this on every
+    session start. The text only changes when principles change, so it is
+    rendered on mutation instead and the hook becomes a file read — no
+    interpreter, no query, constant cost.
+    """
+    db_path = db_path or DEFAULT_DB
+    try:
+        store = MemoryStore(db_path)
+        settings = MemoryStore.load_settings()
+        brains = store.get_brains()
+    except Exception:
+        return None
+
+    ranked = []
+    for b in brains:
+        for pr in store.get_principles(b.id):
+            ranked.append((effective_confidence(pr.confidence, pr.timestamp,
+                                                settings.confidence_half_life_days),
+                           b.name, pr))
+    ranked.sort(key=lambda t: -t[0])
+
+    if not ranked:
+        try:
+            SESSION_CONTEXT_FILE.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return None
+
+    lines = [f"## Meldwerkes — {len(brains)} mind(s), "
+             f"auto-answer {'on' if settings.principle_auto_answer else 'off'}", ""]
+    for eff, brain_name, pr in ranked[:CONTEXT_MAX_PRINCIPLES]:
+        lines.append(f"- [{brain_name}] {pr.principle} ({eff:.0%})")
+
+    metas = [m for b in brains for m in store.get_meta_principles(b.id)][:CONTEXT_MAX_METAS]
+    for m in metas:
+        lines.append(f"- [meta] {m.principle_a} > {m.principle_b} in {m.context}")
+
+    if len(ranked) > CONTEXT_MAX_PRINCIPLES:
+        lines.append(f"- (+{len(ranked) - CONTEXT_MAX_PRINCIPLES} more; "
+                     "/meldwerkes-report for all)")
+
+    context = "\n".join(lines)[:CONTEXT_MAX_CHARS]
+    payload = json.dumps({"hookSpecificOutput": {
+        "hookEventName": "SessionStart", "additionalContext": context}})
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        SESSION_CONTEXT_FILE.write_text(payload)
+    except Exception:
+        return None
+    return SESSION_CONTEXT_FILE
