@@ -72,3 +72,30 @@ names are worth knowing going in:
   came back with zero GitHub repos and every registry and domain free.
 
 So reach for a compound, not a rarer word.
+
+### `scripts/hookcheck.py`
+
+Smoke-tests a plugin's hooks against *ordinary* input — a slash command, plain
+prose, a routine tool call — and fails if any of them exits 2, times out, or
+returns a blocking decision.
+
+```bash
+python3 scripts/hookcheck.py ../my-plugin
+```
+
+**Use when:** any time a plugin declares hooks, and always before shipping one.
+
+Hooks are the only plugin primitive that can break a session outright, and the
+failure looks to the user like Claude Code is broken rather than like a plugin
+bug. The check that matters is not whether a hook works on the case it was
+written for, but whether it stays out of the way on the cases it was not.
+
+It also flags `type: "prompt"` hooks on non-`Stop` events. Prompt hooks are
+**gates**: the evaluating model returns ok:true/false, and a false carries
+`preventContinuation`. Anything passive — logging, capture, context injection —
+must be `type: "command"`.
+
+This exists because a `UserPromptSubmit` prompt hook once shipped that answered
+`NO_SIGNAL` for any unremarkable message, which blocked every ordinary prompt
+including the plugin's own setup command. One run against a plain prompt would
+have caught it.
