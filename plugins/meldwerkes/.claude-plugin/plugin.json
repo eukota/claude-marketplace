@@ -1,6 +1,6 @@
 {
   "name": "meldwerkes",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "description": "Meldwerkes: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
   "author": {
     "name": "Darrell Ross"

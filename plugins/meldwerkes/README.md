@@ -23,8 +23,11 @@ Creates your first brain, configures settings, verifies memory store.
 | Skill | Purpose |
 |---|---|
 | `/meldwerkes-setup` | Create a brain, configure settings |
-| `/meldwerkes-bootstrap` | Pretrain a mind from existing chat history |
+| `/meldwerkes-bootstrap` | Survey chat history, propose minds, then create and import |
 | `/meldwerkes-review` | Review principles; reinforce, weaken, revise, retire |
+| `/meldwerkes-calibrate` | Test how well the mind predicts you; r, calibration, per-domain |
+| `/meldwerkes-capture` | Turn learning on/off; check whether it is recording |
+| `/meldwerkes-history` | Checkpoints, retract a time range, restore |
 | `/meldwerkes-report` | Status report: brains, decisions, principles, stats |
 | `/pahf-compress` | Run distillation loop; detect brain split signals |
 | `/meldwerkes-export` | Export a brain to portable JSON |
@@ -38,6 +41,16 @@ Two toggles (configured during setup or via `/meldwerkes-setup`):
 - **Conflict resolution** — when `auto`, orchestrator resolves conflicts via principles; when `manual`, always asks you.
 
 Hard floor: if principles can't resolve a conflict, it always escalates to you regardless of settings.
+
+## Control
+
+Learning is on by default and can be turned off at any time — `/meldwerkes-capture`.
+The guard lives in the storage layer, so a paused capture cannot be bypassed.
+
+Every mutating operation snapshots the store first, so learning can be rolled
+back: `/meldwerkes-history` retracts a time range or restores any checkpoint.
+Restore checkpoints the current state before overwriting, so undo is itself
+undoable.
 
 ## Temporal decay
 

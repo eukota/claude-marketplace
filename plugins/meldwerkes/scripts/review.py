@@ -66,18 +66,19 @@ def cmd_list(store, args):
 
 def main():
     ap = argparse.ArgumentParser()
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--db", default=str(DEFAULT_DB))
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    ls = sub.add_parser("list");         ls.add_argument("--brain-id")
-    rf = sub.add_parser("reinforce");    rf.add_argument("--principle-id", required=True)
+    ls = sub.add_parser("list", parents=[common]);         ls.add_argument("--brain-id")
+    rf = sub.add_parser("reinforce", parents=[common]);    rf.add_argument("--principle-id", required=True)
     rf.add_argument("--boost", type=float, default=0.05)
-    wk = sub.add_parser("weaken");       wk.add_argument("--principle-id", required=True)
+    wk = sub.add_parser("weaken", parents=[common]);       wk.add_argument("--principle-id", required=True)
     wk.add_argument("--penalty", type=float, default=0.25)
-    rv = sub.add_parser("revise");       rv.add_argument("--principle-id", required=True)
+    rv = sub.add_parser("revise", parents=[common]);       rv.add_argument("--principle-id", required=True)
     rv.add_argument("--text", required=True)
-    rt = sub.add_parser("retire");       rt.add_argument("--principle-id", required=True)
+    rt = sub.add_parser("retire", parents=[common]);       rt.add_argument("--principle-id", required=True)
 
-    ap.add_argument("--db", default=str(DEFAULT_DB))
     args = ap.parse_args()
     store = MemoryStore(Path(args.db))
 
