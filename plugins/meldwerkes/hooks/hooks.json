@@ -16,9 +16,10 @@
       {
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "The user just submitted this message: $ARGUMENTS\n\nDoes this message appear to be: (a) a correction to something Claude just did or said, (b) a direct statement of preference or principle (e.g. 'always do X', 'never do Y', 'I prefer X over Y'), or (c) an answer to a clarifying question Claude asked that reveals a preference or constraint?\n\nIf yes to any of these, respond with: CAPTURE_SIGNAL: <one sentence describing the preference or principle revealed>\nIf no, respond with: NO_SIGNAL",
-            "statusMessage": "Checking for preference signals"
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/capture_prompt.py\" 2>/dev/null || true",
+            "timeout": 5,
+            "statusMessage": "Recording signal"
           }
         ]
       }
