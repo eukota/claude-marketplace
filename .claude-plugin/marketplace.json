@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "plugin-builder",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "source": "./plugins/plugin-builder",
       "description": "Tools for building Claude marketplace plugins \u2014 choosing primitives, checking name availability, smoke-testing hooks, scaffolding structure, and following conventions.",
       "license": "MIT",
@@ -31,7 +31,7 @@
     },
     {
       "name": "meldwerkes",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "source": "./plugins/meldwerkes",
       "description": "Meldwerkes: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
       "license": "MIT",

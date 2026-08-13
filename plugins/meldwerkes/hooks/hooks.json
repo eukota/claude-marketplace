@@ -5,9 +5,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py\" 2>/dev/null || true",
-            "timeout": 10,
-            "statusMessage": "Loading Meldwerkes memory"
+            "command": "cat \"$HOME/.small-brain/session-context.json\" 2>/dev/null || true",
+            "timeout": 5,
+            "statusMessage": "Loading Meldwerkes principles"
           }
         ]
       }
@@ -20,18 +20,6 @@
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/capture_prompt.py\" 2>/dev/null || true",
             "timeout": 5,
             "statusMessage": "Recording signal"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session_stop.py\" 2>/dev/null || true",
-            "timeout": 10,
-            "async": true
           }
         ]
       }

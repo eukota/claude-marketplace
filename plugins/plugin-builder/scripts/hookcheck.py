@@ -26,11 +26,20 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 # Exit 2 is Claude Code's "block" signal for hooks. Anything non-zero is a
 # problem; 2 specifically will stop the user's turn.
 BLOCK_EXIT = 2
+
+# Cost budgets. Hooks run on the user's critical path — a hook that is correct
+# but slow is the failure mode immediately after one that blocks. Injected
+# context is worse than a slow hook, because it is paid on every subsequent
+# turn of the session rather than once.
+SLOW_MS = 150
+INTERPRETERS = ("python", "python3", "node", "ruby", "perl", "deno", "bun")
+MAX_CONTEXT_CHARS = 4000
 
 # Ordinary payloads per event. Deliberately unremarkable: the interesting case
 # is usually handled, the boring one is what breaks.
@@ -74,11 +83,21 @@ def check_command_hook(event, hook, plugin_dir, verbose):
             if not target.exists():
                 findings.append(("ERROR", f"referenced file missing: {target.name}"))
 
+    # An interpreter costs 30-50ms of startup before the hook does anything.
+    first_word = cmd.strip().split()[0] if cmd.strip() else ""
+    if os.path.basename(first_word) in INTERPRETERS:
+        findings.append(("INFO", f"spawns {os.path.basename(first_word)} "
+                                 "(~30-50ms startup before any work)"))
+    if "timeout" not in hook:
+        findings.append(("WARN", "no timeout declared — a hang has no ceiling"))
+
     for label, extra in PAYLOADS.get(event, [("generic", {})]):
         payload = json.dumps({**COMMON, "hook_event_name": event, **extra})
         try:
+            t0 = time.perf_counter()
             r = subprocess.run(cmd, shell=True, input=payload, capture_output=True,
                                text=True, timeout=timeout + 2, env=env)
+            elapsed_ms = (time.perf_counter() - t0) * 1000
         except subprocess.TimeoutExpired:
             findings.append(("ERROR", f"[{label}] timed out (> {timeout}s) — blocks the turn"))
             continue
@@ -88,10 +107,19 @@ def check_command_hook(event, hook, plugin_dir, verbose):
         elif r.returncode != 0:
             findings.append(("WARN", f"[{label}] exit {r.returncode} (expected 0)"))
 
+        if elapsed_ms > SLOW_MS:
+            findings.append(("WARN", f"[{label}] took {elapsed_ms:.0f}ms "
+                                     f"(budget {SLOW_MS}ms) — runs on the user's critical path"))
+
         out = (r.stdout or "").strip()
         if out:
             try:
                 parsed = json.loads(out)
+                ctx = parsed.get("hookSpecificOutput", {}).get("additionalContext")
+                if ctx and len(ctx) > MAX_CONTEXT_CHARS:
+                    findings.append(("WARN",
+                        f"[{label}] injects {len(ctx)} chars of context — paid on "
+                        "EVERY turn of the session, not once. Cap it by budget."))
                 decision = parsed.get("decision") or parsed.get(
                     "hookSpecificOutput", {}).get("permissionDecision")
                 if decision in ("block", "deny"):
