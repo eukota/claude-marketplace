@@ -31,7 +31,7 @@
     },
     {
       "name": "meldwerkes",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "source": "./plugins/meldwerkes",
       "description": "Meldwerkes: multi-agent cognitive architecture that builds a personalized decision model through PAHF loops, distillation, and multi-brain orchestration.",
       "license": "MIT",

@@ -28,6 +28,19 @@ Bound it if history is large: `--since YYYY-MM-DD`, `--limit N`. Adjust
 `--min-signals` (default 15) to change how much evidence a domain needs before
 it justifies its own mind.
 
+**Auth is chosen before the first billable call.** The survey prints how many
+model calls it will make, then asks which credentials to use:
+
+| Choice | What it uses | What it costs |
+|---|---|---|
+| subscription | `claude -p`, the user's Claude Code login | subscription usage limits; no API key |
+| api | `ANTHROPIC_API_KEY` via the anthropic SDK | billed to the API account, separately |
+
+Pass `--auth subscription` or `--auth api` to skip the prompt. Left as `ask`
+(the default) it prompts on a TTY and auto-detects when piped, preferring the
+subscription. **Default to subscription unless the user says otherwise** — it
+needs no key and no credit balance, and most users have it already.
+
 **Present the survey to the user and stop.** Walk them through:
 
 - Which domains appeared, and how much signal each has
@@ -69,7 +82,7 @@ principles come from compression. The apply output prints the exact command per
 mind:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/compress.py --brain-id <id> --detect-split
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/compress.py --brain-id <id> --detect-split --auth subscription
 ```
 
 Run it per mind, then `/meldwerkes-review` to look at what was derived, and

@@ -12,13 +12,10 @@ from memory import MemoryStore, Principle, MetaPrinciple, DEFAULT_DB
 from memory import write_session_context
 from pathlib import Path
 
-try:
-    from anthropic import Anthropic
-except ImportError:
-    print("Error: anthropic SDK required. Run: pip install anthropic", file=sys.stderr)
-    sys.exit(1)
+import llm
 
-MODEL = "claude-sonnet-4-6"
+# Set once in main(), after the user has chosen how to authenticate.
+COMPLETER = None
 
 
 def extract_principles(store: MemoryStore, brain_id: str, num_recent: int) -> list[Principle]:
@@ -43,11 +40,7 @@ def extract_principles(store: MemoryStore, brain_id: str, num_recent: int) -> li
         for c in relevant_corrections
     ]) or "No corrections."
 
-    client = Anthropic()
-    msg = client.messages.create(
-        model=MODEL,
-        max_tokens=2000,
-        messages=[{"role": "user", "content": f"""Analyze this decision log and extract key principles.
+    text = COMPLETER.complete(f"""Analyze this decision log and extract key principles.
 
 Decisions:
 {dec_text}
@@ -65,11 +58,9 @@ Extract 2-5 principles that appear to guide these decisions. Return JSON only:
       "confidence": 0.8
     }}
   ]
-}}"""}]
-    )
+}}""", max_tokens=2000)
 
     try:
-        text = msg.content[0].text
         data = json.loads(text[text.find("{"):text.rfind("}")+1])
         principles = []
         for p in data.get("principles", []):
@@ -100,11 +91,7 @@ def extract_meta_principles(store: MemoryStore, brain_id: str) -> list[MetaPrinc
     p_text = "\n".join([f"- {p.principle} ({p.confidence:.0%})" for p in principles])
     c_text = "\n".join([f"- {c.principle_affected}: {c.new_weighting}" for c in conflicts])
 
-    client = Anthropic()
-    msg = client.messages.create(
-        model=MODEL,
-        max_tokens=1500,
-        messages=[{"role": "user", "content": f"""Analyze principle conflicts and extract meta-principles.
+    text = COMPLETER.complete(f"""Analyze principle conflicts and extract meta-principles.
 
 Principles:
 {p_text}
@@ -122,11 +109,9 @@ Extract 1-3 meta-principles answering "when X conflicts with Y, which wins?" Ret
       "context": "..."
     }}
   ]
-}}"""}]
-    )
+}}""", max_tokens=1500)
 
     try:
-        text = msg.content[0].text
         data = json.loads(text[text.find("{"):text.rfind("}")+1])
         metas = []
         for m in data.get("meta_principles", []):
@@ -154,7 +139,11 @@ def main():
     parser.add_argument("--detect-split", action="store_true",
                         help="Check if conflict clusters suggest a brain split")
     parser.add_argument("--db", default=str(DEFAULT_DB))
+    llm.add_auth_arg(parser)
     args = parser.parse_args()
+
+    global COMPLETER
+    COMPLETER = llm.Completer(llm.resolve_auth(args.auth))
 
     store = MemoryStore(Path(args.db))
 
