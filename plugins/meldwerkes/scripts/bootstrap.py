@@ -34,9 +34,9 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from memory import (MemoryStore, Decision, Correction, DEFAULT_DB,
                     effective_confidence, checkpoint)
+import llm
 
 TRANSCRIPT_DIR = Path.home() / ".claude" / "projects"
-MODEL = "claude-sonnet-4-6"  # matches compress.py
 BATCH = 20
 
 CLASSIFY_PROMPT = """You are extracting durable preferences from a developer's chat history.
@@ -122,19 +122,14 @@ def _clean(text: str) -> str:
     return "\n".join(l.lstrip("❯ ").rstrip() for l in text.splitlines()).strip()
 
 
-def classify(client, batch):
+def classify(completer, batch):
     numbered = []
     for i, (_, asst, user, _) in enumerate(batch, 1):
         a = (asst[-600:] + "…") if len(asst) > 600 else asst
         u = (user[:900] + "…") if len(user) > 900 else user
         numbered.append(f"--- {i} ---\nASSISTANT: {a or '(start of conversation)'}\nUSER: {u}")
-    resp = client.messages.create(
-        model=MODEL, max_tokens=4096,
-        messages=[{"role": "user", "content": CLASSIFY_PROMPT + "\n\n".join(numbered)}],
-    )
-    raw = "".join(b.text for b in resp.content if b.type == "text").strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1].lstrip("json").strip()
+    raw = llm.strip_fence(
+        completer.complete(CLASSIFY_PROMPT + "\n\n".join(numbered), max_tokens=4096))
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -159,17 +154,16 @@ def cmd_survey(args):
     print(f"Surveying {len(exchanges)} user turns from {root}")
     print("Nothing will be created — this phase only proposes.\n")
 
-    try:
-        from anthropic import Anthropic
-    except ImportError:
-        sys.exit("anthropic SDK required: pip install anthropic")
-    client = Anthropic()
+    # Settle auth before the first billable call, not on failure partway in.
+    batches = (len(exchanges) + BATCH - 1) // BATCH
+    print(f"This will make {batches} model calls ({BATCH} exchanges per call).")
+    completer = llm.Completer(llm.resolve_auth(args.auth))
 
     kinds, signals = Counter(), []
     for i in range(0, len(exchanges), BATCH):
         batch = exchanges[i:i + BATCH]
         print(f"  classifying {i + 1}-{i + len(batch)} of {len(exchanges)}…", end="\r")
-        for item in classify(client, batch):
+        for item in classify(completer, batch):
             n = item.get("n", 0)
             if not (1 <= n <= len(batch)):
                 continue
@@ -351,6 +345,7 @@ def main():
     sv.add_argument("--min-confidence", type=float, default=0.5)
     sv.add_argument("--min-signals", type=int, default=15,
                     help="Signals a domain needs to justify its own mind")
+    llm.add_auth_arg(sv)
 
     ap_ = sub.add_parser("apply", parents=[common], help="create the minds the plan describes")
     ap_.add_argument("--plan", required=True)

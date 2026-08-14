@@ -17,8 +17,13 @@ description: Run the distillation loop — extract principles from recent decisi
    python3 ${CLAUDE_PLUGIN_ROOT}/scripts/compress.py \
      --brain-id <brain-id> \
      --num-recent 20 \
-     --detect-split
+     --detect-split \
+     --auth subscription
    ```
+
+   `--auth subscription` runs the model calls through `claude -p` on the user's
+   Claude Code login — no API key, no credit balance. Use `--auth api` instead
+   to bill their Anthropic API account, or drop the flag to be prompted.
 
 3. **Show extracted principles** to the user. Ask: are any of these wrong or weighted incorrectly?
 
@@ -33,7 +38,8 @@ description: Run the distillation loop — extract principles from recent decisi
    ```bash
    python3 ${CLAUDE_PLUGIN_ROOT}/scripts/compress.py \
      --brain-id <brain-id> \
-     --meta-only
+     --meta-only \
+     --auth subscription
    ```
 
 7. **Show the final memory state.**
