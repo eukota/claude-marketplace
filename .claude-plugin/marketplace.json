@@ -48,6 +48,16 @@
       "author": {
         "name": "Darrell Ross"
       }
+    },
+    {
+      "name": "local-dev-standards",
+      "version": "0.1.0",
+      "source": "./plugins/local-dev-standards",
+      "description": "Enforces standard local development practices — git worktrees, containerized package installs, Makefile start/stop targets, and hot reload.",
+      "license": "MIT",
+      "author": {
+        "name": "Darrell Ross"
+      }
     }
   ]
 }
