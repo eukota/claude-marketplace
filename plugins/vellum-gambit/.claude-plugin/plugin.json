@@ -1,0 +1,10 @@
+{
+  "name": "vellum-gambit",
+  "version": "0.1.0",
+  "description": "Brief interview skills for candidates in AI-assisted technical interviews: clarify, plan, direct, review, verify, build integration tests with a dashboard, and narrate. Each leaves a short artifact the interviewer can see.",
+  "author": {
+    "name": "Darrell Ross"
+  },
+  "license": "MIT",
+  "primitives": ["skills"]
+}
