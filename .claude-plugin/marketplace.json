@@ -58,6 +58,16 @@
       "author": {
         "name": "Darrell Ross"
       }
+    },
+    {
+      "name": "interview-skills",
+      "version": "0.2.0",
+      "source": "./plugins/interview-skills",
+      "description": "Brief interview skills for candidates in AI-assisted technical interviews: configure, clarify, plan, direct, review, verify, build integration tests with a dashboard, and narrate.",
+      "license": "MIT",
+      "author": {
+        "name": "Darrell Ross"
+      }
     }
   ]
 }

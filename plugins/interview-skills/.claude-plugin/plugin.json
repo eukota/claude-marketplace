@@ -1,0 +1,10 @@
+{
+  "name": "interview-skills",
+  "version": "0.2.0",
+  "description": "Brief interview skills for candidates in AI-assisted technical interviews: configure, clarify, plan, direct, review, verify, build integration tests with a dashboard, and narrate. Each leaves a short artifact the interviewer can see.",
+  "author": {
+    "name": "Darrell Ross"
+  },
+  "license": "MIT",
+  "primitives": ["skills"]
+}
