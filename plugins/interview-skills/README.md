@@ -1,4 +1,4 @@
-# vellum-gambit
+# interview-skills
 
 Brief interview skills for candidates in AI-assisted technical interviews.
 
@@ -22,7 +22,7 @@ In these interviews you share your screen, work with an AI coding tool, and are 
 | `integration-tests` | You want to show the whole system working | Tests, an observability dashboard, click-to-run buttons, `interview/06-integration.md` |
 | `narrate` | You need words for a decision, a mistake or a wrap-up | Prompts to answer aloud |
 
-Invoke them as `/vellum-gambit:<skill>`, for example `/vellum-gambit:clarify`.
+Invoke them as `/interview-skills:<skill>`, for example `/interview-skills:clarify`.
 
 ### `integration-tests` is a meta-skill
 
@@ -44,7 +44,7 @@ It is only done when it shows evidence: the dashboard loads, a click produces a 
 
 ```
 /plugin marketplace add eukota/claude-marketplace
-/plugin install vellum-gambit@eukota-claude-marketplace
+/plugin install interview-skills@eukota-claude-marketplace
 ```
 
 ## Practice
