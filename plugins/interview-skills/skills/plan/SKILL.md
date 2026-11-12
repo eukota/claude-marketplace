@@ -21,6 +21,10 @@ A plan the candidate has pushed back on beats a long plan they accepted. Budget 
 
 MVP only, in-memory storage, one core journey first, and the test plan decided now: integration tests over the real running app (see `integration-tests`).
 
+## Settings
+
+If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: Use `time` to put a minute budget on each build step, `stack` to name the components, and `level` to set how much the plan weighs trade-offs (senior) against a single working path (entry).
+
 ## Done when
 
 The file has components, build order, the riskiest part, a Not-doing list, and one change the candidate made to the AI's first draft.

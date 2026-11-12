@@ -16,6 +16,10 @@ description: Use when the candidate in an AI-assisted interview needs to show th
 5. If a test fails, decide with the candidate whether the code or the test is wrong before changing either.
 6. Save a short list to `interview/05-verify.md`: what ran, what passed, what was added, what is deliberately not covered.
 
+## Settings
+
+If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: Use `time` to decide how many cases to add, and `stack` for the test tooling already in the project.
+
 ## Done when
 
 Tests ran with visible output, at least two candidate-chosen edge cases were added, and the gaps are stated aloud.

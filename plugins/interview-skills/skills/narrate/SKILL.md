@@ -23,6 +23,10 @@ Offer the candidate the beat that fits the moment, as a prompt to answer in thei
 
 Voice input is fine and signals comfort with the tool; expect transcription noise and say that you do. Name the process you are using ("I'm running the review checklist") so skills show up as method.
 
+## Settings
+
+If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: If `voice` is `yes`, remind the candidate to mention transcription noise. `narration: short` gives one-sentence prompts; `narration: full` gives the full set above.
+
 ## Done when
 
 The candidate has said the wrap-up aloud: working, evidence, gaps, next steps.

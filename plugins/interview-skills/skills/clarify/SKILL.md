@@ -19,6 +19,10 @@ The prompt is deliberately vague. Questions are the first thing the interviewer 
 
 Offer a draft, then have the candidate cut, reorder and add at least one question of their own. Never ask the interviewer's questions for them without the candidate reading them first.
 
+## Settings
+
+If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: Use `time` to size the scope so it is finishable in that many minutes, and `level` to set the depth of the questions: entry keeps to the core journey, mid adds data and failure cases, senior adds scale, operations and trade-offs.
+
 ## Done when
 
 The file exists with questions, assumptions and a one-line scope statement, and the candidate has asked the top questions aloud.

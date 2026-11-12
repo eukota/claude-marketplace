@@ -23,6 +23,10 @@ The brief is where the candidate shows they are in control. Vague prompts get in
 
 The candidate states the constraints. If they don't know a real shape yet, the next step is to go find out, not to let the AI guess.
 
+## Settings
+
+If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: Use `stack` and `ai_tool` so the brief matches what is already in use and how that tool takes instructions. Use `level` to set how much the brief spells out (entry) against how much it asks the AI to propose and justify (senior).
+
 ## Done when
 
 The brief names real shapes and constraints, and the AI is writing to files.

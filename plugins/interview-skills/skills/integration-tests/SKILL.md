@@ -45,6 +45,10 @@ Make every click leave a result in `logs/test-runs-latest.jsonl` that shows up o
 
 Tell the AI this is an MVP and time-boxed. Build tests first, then the dashboard, and say aloud why: "I want to see the system under repeated runs, not just once."
 
+## Settings
+
+If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: Build in `stack`. If `time` is under 45 minutes, build the smallest dashboard first (latest results and run buttons) and add history and the log tail only if time remains. The tests, the logs and the dashboard are never skipped.
+
 ## Done when (show the evidence; do not claim it)
 
 1. The dashboard URL loads (show a 200 or the page itself).

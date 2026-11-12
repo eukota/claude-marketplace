@@ -14,6 +14,7 @@ In these interviews you share your screen, work with an AI coding tool, and are 
 
 | Skill | Use it when | Leaves behind |
 | --- | --- | --- |
+| `configure` | Before you start, or when you want to change the settings | `interview/config.md`: time, level, stack, tool, voice, skipped skills |
 | `clarify` | You've just been given the prompt | `interview/01-clarify.md`: questions, assumptions, scope |
 | `plan` | Scope is set, before any code | `interview/02-plan.md`: components, build order, not-doing list |
 | `direct` | You're about to ask the AI to write code | `interview/03-brief.md`: the brief, with real data shapes |
@@ -23,6 +24,10 @@ In these interviews you share your screen, work with an AI coding tool, and are 
 | `narrate` | You need words for a decision, a mistake or a wrap-up | Prompts to answer aloud |
 
 Invoke them as `/interview-skills:<skill>`, for example `/interview-skills:clarify`.
+
+### `configure` is a meta-skill
+
+It asks a few questions and writes `interview/config.md`, which every other skill reads. It sets how much time you have, your level, your stack and AI tool, whether you use voice, how much narration you want, and which skills to skip. In a real interview, the interviewer's instructions win over any setting. The settings and rules are in `skills/configure/references/settings.md`.
 
 ### `integration-tests` is a meta-skill
 
@@ -36,9 +41,9 @@ It is only done when it shows evidence: the dashboard loads, a click produces a 
 
 ## A typical flow
 
-`clarify` → `plan` → `direct` → *(AI builds)* → `review` → `verify` → `integration-tests` → `narrate`
+`configure` → `clarify` → `plan` → `direct` → *(AI builds)* → `review` → `verify` → `integration-tests` → `narrate`
 
-`narrate` can be used at any step. Skip steps freely; each skill stands on its own.
+`narrate` can be used at any step. Skip steps freely; each skill stands on its own. `configure` is optional: without a config file every skill uses its defaults.
 
 ## Install
 
@@ -59,4 +64,4 @@ Try the skills on a practice question before an interview. The full run is about
 
 ## Status
 
-Version 0.1.0, first draft. Skill wording will be tuned after practice runs.
+Version 0.2.0, first draft. Skill wording will be tuned after practice runs.

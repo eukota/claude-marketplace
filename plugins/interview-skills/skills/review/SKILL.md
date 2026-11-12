@@ -23,6 +23,10 @@ Accepting AI output unread is the red flag interviewers look for. Reviewing alou
 
 Claude produces the checklist. The candidate must find and name at least one real issue in their own words before Claude fixes anything.
 
+## Settings
+
+If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: Use `level` to set the depth of the checklist: entry may stop after invented things, scope creep and edge cases, while mid and senior run all five items.
+
 ## Done when
 
 `interview/04-review.md` lists what was checked and found, and one change was directed by the candidate.
