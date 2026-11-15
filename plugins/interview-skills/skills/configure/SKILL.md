@@ -17,8 +17,8 @@ The settings, their allowed values and the rules for applying them are in `${CLA
    - **Round 2:** stack, AI tool, voice input (yes or no), narration (short or full), and any skills to skip.
 3. In a real interview, ask only Round 1 and the stack and AI tool. Use defaults for the rest, and say so.
 4. Write `interview/config.md` in the format in the settings reference. Create the `interview/` folder if needed.
-5. Read it back as one line per setting that says what it changes, for example "time: 45, so plan will put a minute budget on each step".
-6. Suggest the next step, usually `/interview-skills:clarify`.
+5. Read it back as one line per setting that says what it changes, for example "time: 45, so each step gets a smaller minute budget and observability builds the smallest dashboard first".
+6. Suggest the next step, usually `/interview-skills:prep`.
 
 ## The candidate does the thinking
 
