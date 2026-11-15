@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Use after prep is finished and before any code is written in an AI-assisted interview, to produce plan.md that follows prompt.md and best_practices.md, splits the work so many agents can build in parallel, including an observability dashboard and the clickable tests, and is trimmed by the candidate.
+description: Use after prep is finished and before any code is written in a practice run of an AI-assisted interview, to produce plan.md that follows prompt.md and best_practices.md, splits the work so many agents can build in parallel, including an observability dashboard and the clickable tests, and is trimmed by the candidate.
 ---
 
 # Plan (step 2 of 5)
@@ -9,7 +9,7 @@ One artifact: `interview/plan.md`. Budget about 15% of `time`. A plan the candid
 
 ## Do
 
-1. **Start from the artifacts.** Read `interview/prompt.md` and `interview/best_practices.md`. If either is missing, run `prep` first. Say the framing aloud: "AI could design for hours, but this is an interview, so I'm asking for a quick plan."
+1. **Start from the artifacts.** Read `interview/prompt.md` and `interview/best_practices.md`. If either is missing, run `prep` first, or if `prep` is in `skip`, ask the candidate for the prompt, the answers and the out-of-scope list directly. Say the framing aloud: "AI could design for hours, but this is an interview, so I'm asking for a quick plan."
 2. **Ask for a plan that follows them,** with these sections, in this order and short:
    1. **Summary:** five lines or fewer, in plain language a non-engineer could follow.
    2. **Diagram:** one picture of the components and the main flow, as a Mermaid block (or ASCII if it won't render).

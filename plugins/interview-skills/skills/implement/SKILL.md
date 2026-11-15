@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Use after plan.md is finished in an AI-assisted interview, to write the shared contract, dispatch many agents in parallel (the system, an observability dashboard and the clickable tests), integrate their work, and have the candidate review what they produced.
+description: Use after plan.md is finished in a practice run of an AI-assisted interview, to write the shared contract, dispatch many agents in parallel (the system, an observability dashboard and the clickable tests), integrate their work, and have the candidate review what they produced.
 ---
 
 # Implement (step 3 of 5)

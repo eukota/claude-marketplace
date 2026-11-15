@@ -7,7 +7,6 @@ The interview skills read `interview/config.md` in the candidate's project. If i
 Plain `key: value` lines, short enough to show on screen:
 
 ```
-mode: practice
 time: 60
 level: mid
 stack: Python, FastAPI
@@ -21,14 +20,13 @@ skip: none
 
 | Key | Values | Default | Used by |
 | --- | --- | --- | --- |
-| `mode` | `practice`, `real` | `practice` | all skills |
-| `time` | minutes for the build segment | `60` | prep, plan, implement, test, commentary |
+| `time` | minutes for the build segment | `60` | prep, plan, implement, observability, test, commentary |
 | `level` | `entry`, `mid`, `senior` | `mid` | prep, plan, implement, commentary |
 | `stack` | free text: language and framework | whatever is already in the project | prep, plan, implement, observability, test |
 | `ai_tool` | free text | the tool in use | implement |
 | `voice` | `yes`, `no` | `no` | narrate |
 | `narration` | `short`, `full` | `full` | narrate, commentary |
-| `skip` | comma-separated skill names (`prep`, `plan`, `implement`, `observability`, `test`, `commentary`, `narrate`), or `none` | `none` | all skills |
+| `skip` | comma-separated skill names (`prep`, `plan`, `implement`, `commentary`, `narrate`), or `none` | `none` | all skills |
 
 ## Time split
 
@@ -46,7 +44,6 @@ The five steps share `time`. Suggested split, used by each step skill to set its
 
 ## Rules for every skill
 
-- **Real interviews.** When `mode` is `real`, the interviewer's instructions win over any setting. If they conflict, follow the interviewer and say so.
 - **Skipped skills.** If the skill being run is in `skip`, tell the candidate and ask whether to run it anyway. The candidate decides.
 - **Unknown values.** Treat a value you don't recognise as the default, and say you did.
 - **The thinking stays with the candidate.** No setting removes the parts where the candidate must decide, push back or add something of their own.

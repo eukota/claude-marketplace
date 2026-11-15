@@ -1,6 +1,6 @@
 ---
 name: commentary
-description: Use at the end of an AI-assisted interview, after the build and tests, when the candidate wants a short spoken close on what they would do if this were built for real, tied to what they chose not to do.
+description: Use at the end of a practice run of an AI-assisted interview, after the build and tests, when the candidate wants a short spoken close on what they would do if this were built for real, tied to what they chose not to do.
 ---
 
 # Commentary (step 5 of 5)

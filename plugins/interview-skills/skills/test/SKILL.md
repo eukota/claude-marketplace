@@ -1,6 +1,6 @@
 ---
 name: test
-description: Use after implementation in an AI-assisted interview, to bring the system, the observability dashboard and the clickable tests together, run the tests while watching the system operate, add the candidate's own edge cases, and iterate on what breaks.
+description: Use after implementation in a practice run of an AI-assisted interview, to bring the system, the observability dashboard and the clickable tests together, run the tests while watching the system operate, add the candidate's own edge cases, and iterate on what breaks.
 ---
 
 # Test (step 4 of 5)

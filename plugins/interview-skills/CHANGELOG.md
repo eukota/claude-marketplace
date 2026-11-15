@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+
+- New `practice` skill, the coach and front door: triggers on "I'm going to practice an interview question", checks for a clean folder and fresh session, gets the question and who plays the interviewer, then walks the five steps, timing each against its budget and asking what the candidate decided. Writes `interview/practice.md`.
+- Stated the purpose plainly: a practice and teaching tool, not for use in a real interview. Reworded the README, manifest descriptions and every skill description to match.
+- Defined "candidate" and "interviewer" for practice (the learner, and whoever plays the interviewer).
+- Removed the `mode` setting and the real-interview rule from `configure` and `settings.md`.
+- Removed `observability` and `test` from the allowed `skip` values, since both are never skipped. `plan` now says what to do when `prep` is skipped.
+- `settings.md` lists `observability` as a user of `time`.
+
 ## 0.3.0
 
 - Reworked into five steps: `prep`, `plan`, `implement`, `test`, `commentary`, plus `configure`, `observability` and `narrate`.
