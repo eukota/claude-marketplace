@@ -63,7 +63,7 @@
       "name": "interview-skills",
       "version": "0.3.0",
       "source": "./plugins/interview-skills",
-      "description": "Brief interview skills for candidates in AI-assisted technical interviews: a four-step flow of prep, plan, implement and test (with integration tests, a dashboard and click-to-run), plus configure and narrate.",
+      "description": "Brief interview skills for candidates in AI-assisted technical interviews: a five-step flow of prep, plan, implement, test and commentary (many parallel agents, an observability dashboard and clickable tests), plus configure, observability and narrate.",
       "license": "MIT",
       "author": {
         "name": "Darrell Ross"

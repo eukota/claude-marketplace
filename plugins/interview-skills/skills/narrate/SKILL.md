@@ -11,7 +11,7 @@ The interviewer can only score what they can hear. Keep each beat to a sentence 
 
 Offer the candidate the beat that fits the moment, as a prompt to answer in their own words, not as a script to read.
 
-- **Opening:** "I'll prep, plan briefly, then build the smallest working version with parallel agents, and test it end to end."
+- **Opening:** "I'll prep, plan briefly, then build the smallest working version with parallel agents, including an observability dashboard, and test it end to end."
 - **Prep:** "I've started research in the background while I ask you some questions, then I'll trim it to what we're building."
 - **Agents running:** what each agent owns, what the contract is, and what you will check when they finish.
 - **Reading AI output:** what you are gaining or noticing, and what you doubt.
@@ -19,7 +19,7 @@ Offer the candidate the beat that fits the moment, as a prompt to answer in thei
 - **AI got it wrong:** say so plainly, name the cause (invented field, missing edge case), and fix it. This reads as control, not failure.
 - **Skipping something:** "I'm leaving X out on purpose because of time; I'd add it next."
 - **Running low on time:** cut scope aloud and protect the core journey and its integration test.
-- **Wrap-up:** what works (with evidence), what is not covered, and the next two things you would do.
+- **Wrap-up:** what works (with evidence) and what is not covered. For what you would do for real, use `commentary`.
 
 ## Signals worth using on purpose
 
@@ -31,4 +31,4 @@ If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}
 
 ## Done when
 
-The candidate has said the wrap-up aloud: working, evidence, gaps, next steps.
+The candidate has said the wrap-up aloud: what works, the evidence, and the gaps.

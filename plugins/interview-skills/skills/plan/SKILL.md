@@ -1,9 +1,9 @@
 ---
 name: plan
-description: Use after prep is finished and before any code is written in an AI-assisted interview, to produce plan.md that follows prompt.md and best_practices.md, splits the work so multiple agents can build in parallel, and is trimmed by the candidate.
+description: Use after prep is finished and before any code is written in an AI-assisted interview, to produce plan.md that follows prompt.md and best_practices.md, splits the work so many agents can build in parallel, including an observability dashboard and the clickable tests, and is trimmed by the candidate.
 ---
 
-# Plan (step 2 of 4)
+# Plan (step 2 of 5)
 
 One artifact: `interview/plan.md`. Budget about 15% of `time`. A plan the candidate has pushed back on beats a long plan they accepted.
 
@@ -13,11 +13,11 @@ One artifact: `interview/plan.md`. Budget about 15% of `time`. A plan the candid
 2. **Ask for a plan that follows them,** with these sections, in this order and short:
    1. **Summary:** five lines or fewer, in plain language a non-engineer could follow.
    2. **Diagram:** one picture of the components and the main flow, as a Mermaid block (or ASCII if it won't render).
-   3. **Shared contract:** the routes, data shapes and names every part must agree on. This is defined first, so the pieces fit.
-   4. **Work split:** units that can be built in parallel. Each lists the files it owns, with no file in two units. If the boundaries aren't clean, say so and plan one unit.
+   3. **Shared contract:** the routes, data shapes and names every part must agree on, what the system **reports about itself** (the event shape the dashboard reads), and the **test scenarios** the clickable tests will run. This is defined first, so the pieces fit.
+   4. **Work split:** units that can be built in parallel: the system's units, plus an **observability dashboard** unit and a **clickable tests** unit (see `observability` and `test`). Each lists the files it owns, with no file in two units. If the boundaries aren't clean, say so and plan fewer units.
    5. **Build order and minute budget** for each unit.
    6. **Riskiest part,** and **Not doing** (auth, persistence, polish).
-   7. **Test plan:** integration tests over the real running app, with the dashboard (see `test`).
+   7. **Observability and tests:** say in a sentence that the system will be observable and why, and name the riskiest behaviors the clickable tests will demonstrate.
 3. **Review and trim.** The candidate reads the Summary and Diagram aloud, then **pushes back at least once:** remove something, reprioritize, or reject an approach with a reason. Cross-check against "Out of scope" in `prompt.md`. If a cut changes the agreed scope, confirm it with the interviewer.
 4. Record what changed from the first draft at the bottom of `plan.md`.
 

@@ -2,7 +2,7 @@
 
 Brief interview skills for candidates in AI-assisted technical interviews.
 
-In these interviews you share your screen, work with an AI coding tool, and are judged on how you use it as much as on what you build. This plugin gives you a small set of short skills, one per stage of the interview. Run them on screen and the interviewer sees a deliberate method instead of improvising: you asked good questions, planned before coding, ran agents in parallel against a shared contract, reviewed what they wrote, and proved it works.
+In these interviews you share your screen, work with an AI coding tool, and are judged on how you use it as much as on what you build. This plugin gives you a small set of short skills, one per stage of the interview. Run them on screen and the interviewer sees a deliberate method instead of improvising: you asked good questions, planned before coding, ran many agents at once against a shared contract, made the system observable, and proved it works.
 
 ## Purpose
 
@@ -10,53 +10,61 @@ In these interviews you share your screen, work with an AI coding tool, and are 
 - Make foresight **visible**. Every skill leaves a short, readable file in `interview/` in your project.
 - Keep **you** doing the thinking. Each skill makes the candidate decide, push back or add something of their own. The AI supports; it doesn't take over. A skill that did the work for you would defeat its purpose.
 
-## The four steps
+## The five steps
 
-The interview is four steps. Each leaves a short file in `interview/` that the interviewer can see.
+The interview is five steps. Each leaves a short file in `interview/` that the interviewer can see.
 
-| Step | Skill | What it builds | Artifacts |
+| Step | Skill | What happens | Artifacts |
 | --- | --- | --- | --- |
 | 1 | `prep` | A background agent gathers best practices while you build the prompt with the interviewer, then you trim the research to the scope you'll build | `prompt.md`, `best_practices.md` |
-| 2 | `plan` | A plan that follows both, with a plain-language summary, a diagram, a shared contract and a work split for parallel agents, reviewed and trimmed by you | `plan.md` |
-| 3 | `implement` | The contract first, then agents in parallel, then integration and your review of what they wrote | `implement.md` |
-| 4 | `test` | Quick checks and edge cases, then integration tests with an observability dashboard and click-to-run buttons | `test.md`, `logs/` |
+| 2 | `plan` | A plan that follows both, with a plain-language summary, a diagram, a shared contract and a work split for many parallel agents, including a dashboard unit and a clickable-tests unit | `plan.md` |
+| 3 | `implement` | The contract first, then many agents at once: the system, an observability dashboard and the clickable tests. You integrate, then review the code and explain it in your own words | `implement.md` |
+| 4 | `test` | Run the clickable tests while watching the system operate on the dashboard, add your own edge cases, and iterate on what breaks | `test.md`, `logs/` |
+| 5 | `commentary` | A short spoken close on what you would do if this were built for real, tied to what you chose not to do | `commentary.md` |
 
-Two more skills work alongside them:
+Three more skills work alongside them:
 
 | Skill | Use it when | Leaves behind |
 | --- | --- | --- |
 | `configure` | Before you start, or when you want to change the settings | `interview/config.md`: time, level, stack, tool, voice, narration, skipped skills |
-| `narrate` | Any time you need words for a decision, a mistake, or a wrap-up | Prompts to answer aloud |
+| `observability` | You plan or dispatch the dashboard agent | The dispatch phrase and what the dashboard must show |
+| `narrate` | Any time you need words for a decision or a mistake | Prompts to answer aloud |
 
 Invoke them as `/interview-skills:<skill>`, for example `/interview-skills:prep`.
+
+### Reviewing is where you show understanding
+
+The build with parallel agents is fast. Reading the output takes time, and that time is the point: you explain the code in your own words, trace a request end to end, and name what you trust least. The AI can explain anything you don't follow, but you have to say it back.
 
 ### Each step makes you decide
 
 The AI drafts, researches and builds. In every step there is a point where **you** must cut, push back or add something of your own before the step is done. That is the part the interviewer is watching, and no setting removes it.
 
-### Parallel by design
+### Many agents at once
 
-`plan` splits the work into units that don't share files and defines a shared contract (routes, data shapes, names) first. `implement` writes the contract to files, then dispatches one agent per unit. If the boundaries aren't clean, the plan says so and uses one agent.
+`plan` splits the work into units that don't share files and defines a shared contract first (routes, data shapes, what the system reports about itself, and the test scenarios). `implement` writes the contract to files and then dispatches one agent per unit at once. The dispatch is part of the demonstration: orchestrating many agents while still tracking and integrating each one.
 
-### `test` is a meta-skill
+### Observability, planned then rendered
 
-It doesn't ship a dashboard. It instructs Claude to **build** integration tests in your project, in your stack, and always to build alongside them:
+The candidate names observability while planning ("add an observability dashboard to the plan that shows the system operating") and then renders it: a parallel agent builds a dashboard that shows requests and events as they happen. The interviewer sees foresight, the vocabulary and the result on screen. `observability` holds the dispatch phrase and what the dashboard must deliver. It doesn't ship code; Claude builds it fresh in your stack.
 
-- an **observability dashboard**: latest results, run history, failures, and a live app-log tail;
-- **click-triggered runs**: run all, run one, and a "hammer" button that repeats runs with a tally;
-- structured logs in a gitignored `logs/` folder, so results can be read as evidence.
+### `test` is clickable and watchable
 
-It is only done when it shows evidence: the dashboard loads, a click produces a logged result, and a hammer run completes.
+The tests are a few meaningful demonstrations you click and watch on the dashboard, each one tied to the plan's riskiest parts. They run against the real running system, reset the data, and log a result. The step ends only with evidence: a click, activity on the dashboard, and a logged result.
+
+### `commentary` is the close
+
+Say what you would do for real, such as looping reviewer and fixer agents to tighten file size and security, and tie each item to a deliberate cut. You say it and don't do it.
 
 ### `configure` is a meta-skill
 
-It asks a few questions and writes `interview/config.md`, which every other skill reads. It sets how much time you have (shared out across the four steps), your level, your stack and AI tool, whether you use voice, how much narration you want, and which skills to skip. In a real interview, the interviewer's instructions win over any setting. The settings and rules are in `skills/configure/references/settings.md`. `configure` is optional: without a config file every skill uses its defaults.
+It asks a few questions and writes `interview/config.md`, which every other skill reads. It sets how much time you have (shared out across the five steps), your level, your stack and AI tool, whether you use voice, how much narration you want, and which skills to skip. In a real interview, the interviewer's instructions win over any setting. The settings and rules are in `skills/configure/references/settings.md`. `configure` is optional: without a config file every skill uses its defaults.
 
 ## A typical flow
 
-`configure` → `prep` → `plan` → `implement` → `test`, with `narrate` at any point.
+`configure` → `prep` → `plan` → `implement` (with `observability`) → `test` → `commentary`, with `narrate` at any point.
 
-Default budget for a 60-minute build: prep 9 minutes, plan 9, implement 24, test 18. If a step runs over, cut scope in the next one; don't skip its artifact.
+Default budget for a 60-minute build: prep 9 minutes, plan 9, implement 18, test 18, commentary 6. Within `implement`, the build is often about 5 minutes and the rest is reviewing the code, where you show you understand it. If a step runs over, cut scope in the next one; don't skip its artifact.
 
 ## Install
 
@@ -67,7 +75,7 @@ Default budget for a 60-minute build: prep 9 minutes, plan 9, implement 24, test
 
 ## Practice
 
-Try the skills on a practice question before an interview. The full run is about 60 minutes: run `prep` first, then work through the four steps and finish with `narrate`.
+Try the skills on a practice question before an interview. The full run is about 60 minutes: run `prep` first, then work through the steps and finish with `commentary`.
 
 ## Design notes
 

@@ -3,7 +3,7 @@ name: prep
 description: Use at the start of an AI-assisted interview, when the candidate has just been given the prompt, to build prompt.md with the interviewer while a background agent gathers best_practices.md, then trim the research to the scope that will be built.
 ---
 
-# Prep (step 1 of 4)
+# Prep (step 1 of 5)
 
 Two artifacts, built at the same time: `interview/prompt.md` and `interview/best_practices.md`. Budget about 15% of `time`.
 

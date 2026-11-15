@@ -22,26 +22,27 @@ skip: none
 | Key | Values | Default | Used by |
 | --- | --- | --- | --- |
 | `mode` | `practice`, `real` | `practice` | all skills |
-| `time` | minutes for the build segment | `60` | prep, plan, implement, test |
-| `level` | `entry`, `mid`, `senior` | `mid` | prep, plan, implement |
-| `stack` | free text: language and framework | whatever is already in the project | prep, plan, implement, test |
+| `time` | minutes for the build segment | `60` | prep, plan, implement, test, commentary |
+| `level` | `entry`, `mid`, `senior` | `mid` | prep, plan, implement, commentary |
+| `stack` | free text: language and framework | whatever is already in the project | prep, plan, implement, observability, test |
 | `ai_tool` | free text | the tool in use | implement |
 | `voice` | `yes`, `no` | `no` | narrate |
-| `narration` | `short`, `full` | `full` | narrate |
-| `skip` | comma-separated skill names (`prep`, `plan`, `implement`, `test`, `narrate`), or `none` | `none` | all skills |
+| `narration` | `short`, `full` | `full` | narrate, commentary |
+| `skip` | comma-separated skill names (`prep`, `plan`, `implement`, `observability`, `test`, `commentary`, `narrate`), or `none` | `none` | all skills |
 
 ## Time split
 
-The four steps share `time`. Suggested split, used by each step skill to set its budget:
+The five steps share `time`. Suggested split, used by each step skill to set its budget:
 
 | Step | Share | Of 60 minutes |
 | --- | --- | --- |
 | `prep` | 15% | 9 |
 | `plan` | 15% | 9 |
-| `implement` | 40% | 24 |
+| `implement` | 30% | 18 |
 | `test` | 30% | 18 |
+| `commentary` | 10% | 6 |
 
-`narrate` has no budget; use it throughout. If a step runs over, cut scope in the next step instead of skipping its artifact.
+`implement` is about 5 minutes of building and the rest review, because the candidate has to show they understand the output. `observability` is built inside `implement`; `narrate` has no budget. If a step runs over, cut scope in the next step instead of skipping its artifact.
 
 ## Rules for every skill
 
