@@ -1,6 +1,6 @@
 ---
 name: observability
-description: Use during an AI-assisted interview when the candidate plans or dispatches the agent that builds the observability dashboard, to give the dispatch phrasing and say what the dashboard must show so the system's activity is visible as it happens.
+description: Use during a practice run of an AI-assisted interview when the candidate plans or dispatches the agent that builds the observability dashboard, to give the dispatch phrasing and say what the dashboard must show so the system's activity is visible as it happens.
 ---
 
 # Observability

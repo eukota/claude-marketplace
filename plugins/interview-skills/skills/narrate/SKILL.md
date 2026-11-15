@@ -1,6 +1,6 @@
 ---
 name: narrate
-description: Use at any point in an AI-assisted interview when the candidate needs a short script to explain a decision aloud, handle an AI mistake, or wrap up with what they would do next.
+description: Use at any point in a practice run of an AI-assisted interview when the candidate needs a short script to explain a decision aloud, handle an AI mistake, or wrap up with what they would do next.
 ---
 
 # Narrate
