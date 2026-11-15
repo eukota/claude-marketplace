@@ -2,7 +2,7 @@
 
 Brief interview skills for candidates in AI-assisted technical interviews.
 
-In these interviews you share your screen, work with an AI coding tool, and are judged on how you use it as much as on what you build. This plugin gives you a small set of short skills, one per stage of the interview. Run them on screen and the interviewer sees a deliberate method instead of improvising: you asked good questions, planned before coding, directed the AI with real data, reviewed what it wrote, and proved it works.
+In these interviews you share your screen, work with an AI coding tool, and are judged on how you use it as much as on what you build. This plugin gives you a small set of short skills, one per stage of the interview. Run them on screen and the interviewer sees a deliberate method instead of improvising: you asked good questions, planned before coding, ran agents in parallel against a shared contract, reviewed what they wrote, and proved it works.
 
 ## Purpose
 
@@ -10,26 +10,35 @@ In these interviews you share your screen, work with an AI coding tool, and are 
 - Make foresight **visible**. Every skill leaves a short, readable file in `interview/` in your project.
 - Keep **you** doing the thinking. Each skill makes the candidate decide, push back or add something of their own. The AI supports; it doesn't take over. A skill that did the work for you would defeat its purpose.
 
-## Skills
+## The four steps
+
+The interview is four steps. Each leaves a short file in `interview/` that the interviewer can see.
+
+| Step | Skill | What it builds | Artifacts |
+| --- | --- | --- | --- |
+| 1 | `prep` | A background agent gathers best practices while you build the prompt with the interviewer, then you trim the research to the scope you'll build | `prompt.md`, `best_practices.md` |
+| 2 | `plan` | A plan that follows both, with a plain-language summary, a diagram, a shared contract and a work split for parallel agents, reviewed and trimmed by you | `plan.md` |
+| 3 | `implement` | The contract first, then agents in parallel, then integration and your review of what they wrote | `implement.md` |
+| 4 | `test` | Quick checks and edge cases, then integration tests with an observability dashboard and click-to-run buttons | `test.md`, `logs/` |
+
+Two more skills work alongside them:
 
 | Skill | Use it when | Leaves behind |
 | --- | --- | --- |
-| `configure` | Before you start, or when you want to change the settings | `interview/config.md`: time, level, stack, tool, voice, skipped skills |
-| `clarify` | You've just been given the prompt | `interview/01-clarify.md`: questions, assumptions, scope |
-| `plan` | Scope is set, before any code | `interview/02-plan.md`: components, build order, not-doing list |
-| `direct` | You're about to ask the AI to write code | `interview/03-brief.md`: the brief, with real data shapes |
-| `review` | The AI has just generated code | `interview/04-review.md`: what you checked and found |
-| `verify` | You want quick evidence the parts work | `interview/05-verify.md`: tests run, edge cases added, gaps |
-| `integration-tests` | You want to show the whole system working | Tests, an observability dashboard, click-to-run buttons, `interview/06-integration.md` |
-| `narrate` | You need words for a decision, a mistake or a wrap-up | Prompts to answer aloud |
+| `configure` | Before you start, or when you want to change the settings | `interview/config.md`: time, level, stack, tool, voice, narration, skipped skills |
+| `narrate` | Any time you need words for a decision, a mistake, or a wrap-up | Prompts to answer aloud |
 
-Invoke them as `/interview-skills:<skill>`, for example `/interview-skills:clarify`.
+Invoke them as `/interview-skills:<skill>`, for example `/interview-skills:prep`.
 
-### `configure` is a meta-skill
+### Each step makes you decide
 
-It asks a few questions and writes `interview/config.md`, which every other skill reads. It sets how much time you have, your level, your stack and AI tool, whether you use voice, how much narration you want, and which skills to skip. In a real interview, the interviewer's instructions win over any setting. The settings and rules are in `skills/configure/references/settings.md`.
+The AI drafts, researches and builds. In every step there is a point where **you** must cut, push back or add something of your own before the step is done. That is the part the interviewer is watching, and no setting removes it.
 
-### `integration-tests` is a meta-skill
+### Parallel by design
+
+`plan` splits the work into units that don't share files and defines a shared contract (routes, data shapes, names) first. `implement` writes the contract to files, then dispatches one agent per unit. If the boundaries aren't clean, the plan says so and uses one agent.
+
+### `test` is a meta-skill
 
 It doesn't ship a dashboard. It instructs Claude to **build** integration tests in your project, in your stack, and always to build alongside them:
 
@@ -39,11 +48,15 @@ It doesn't ship a dashboard. It instructs Claude to **build** integration tests 
 
 It is only done when it shows evidence: the dashboard loads, a click produces a logged result, and a hammer run completes.
 
+### `configure` is a meta-skill
+
+It asks a few questions and writes `interview/config.md`, which every other skill reads. It sets how much time you have (shared out across the four steps), your level, your stack and AI tool, whether you use voice, how much narration you want, and which skills to skip. In a real interview, the interviewer's instructions win over any setting. The settings and rules are in `skills/configure/references/settings.md`. `configure` is optional: without a config file every skill uses its defaults.
+
 ## A typical flow
 
-`configure` → `clarify` → `plan` → `direct` → *(AI builds)* → `review` → `verify` → `integration-tests` → `narrate`
+`configure` → `prep` → `plan` → `implement` → `test`, with `narrate` at any point.
 
-`narrate` can be used at any step. Skip steps freely; each skill stands on its own. `configure` is optional: without a config file every skill uses its defaults.
+Default budget for a 60-minute build: prep 9 minutes, plan 9, implement 24, test 18. If a step runs over, cut scope in the next one; don't skip its artifact.
 
 ## Install
 
@@ -54,7 +67,7 @@ It is only done when it shows evidence: the dashboard loads, a click produces a 
 
 ## Practice
 
-Try the skills on a practice question before an interview. The full run is about 60 minutes: spend the first 5 to 10 on `clarify`, build the smallest working version, and finish with `integration-tests` and `narrate`.
+Try the skills on a practice question before an interview. The full run is about 60 minutes: run `prep` first, then work through the four steps and finish with `narrate`.
 
 ## Design notes
 
@@ -64,4 +77,4 @@ Try the skills on a practice question before an interview. The full run is about
 
 ## Status
 
-Version 0.2.0, first draft. Skill wording will be tuned after practice runs.
+Version 0.3.0, first draft. Skill wording will be tuned after practice runs.

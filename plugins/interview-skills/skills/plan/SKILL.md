@@ -1,30 +1,36 @@
 ---
 name: plan
-description: Use after requirements are clarified in an AI-assisted interview and before any code is written, when the candidate needs a short, time-boxed design they have shaped themselves.
+description: Use after prep is finished and before any code is written in an AI-assisted interview, to produce plan.md that follows prompt.md and best_practices.md, splits the work so multiple agents can build in parallel, and is trimmed by the candidate.
 ---
 
-# Plan
+# Plan (step 2 of 4)
 
-A plan the candidate has pushed back on beats a long plan they accepted. Budget 5 to 10 minutes.
+One artifact: `interview/plan.md`. Budget about 15% of `time`. A plan the candidate has pushed back on beats a long plan they accepted.
 
 ## Do
 
-1. Start from the clarified scope (`interview/01-clarify.md`). If it doesn't exist, run `clarify` first.
-2. Say the framing aloud: "AI could design for hours, but this is an interview, so I'm asking for a quick plan."
-3. Ask for a plan that fits one screen: components, the main data shape, the 4 to 6 steps in build order, and the riskiest part.
-4. Name the process wanted ("a short plan", "brainstorm the options") instead of letting it expand.
-5. The candidate **reads critically, then pushes back at least once**: remove something, reprioritize, or reject an approach with a reason. Record the change.
-6. Add an explicit **Not doing** list (auth, persistence, polish). Skipping on purpose reads as intent, not negligence.
-7. Save to `interview/02-plan.md`.
+1. **Start from the artifacts.** Read `interview/prompt.md` and `interview/best_practices.md`. If either is missing, run `prep` first. Say the framing aloud: "AI could design for hours, but this is an interview, so I'm asking for a quick plan."
+2. **Ask for a plan that follows them,** with these sections, in this order and short:
+   1. **Summary:** five lines or fewer, in plain language a non-engineer could follow.
+   2. **Diagram:** one picture of the components and the main flow, as a Mermaid block (or ASCII if it won't render).
+   3. **Shared contract:** the routes, data shapes and names every part must agree on. This is defined first, so the pieces fit.
+   4. **Work split:** units that can be built in parallel. Each lists the files it owns, with no file in two units. If the boundaries aren't clean, say so and plan one unit.
+   5. **Build order and minute budget** for each unit.
+   6. **Riskiest part,** and **Not doing** (auth, persistence, polish).
+   7. **Test plan:** integration tests over the real running app, with the dashboard (see `test`).
+3. **Review and trim.** The candidate reads the Summary and Diagram aloud, then **pushes back at least once:** remove something, reprioritize, or reject an approach with a reason. Cross-check against "Out of scope" in `prompt.md`. If a cut changes the agreed scope, confirm it with the interviewer.
+4. Record what changed from the first draft at the bottom of `plan.md`.
 
-## Defaults for interview time
+## The candidate does the thinking
 
-MVP only, in-memory storage, one core journey first, and the test plan decided now: integration tests over the real running app (see `integration-tests`).
+Claude drafts. The candidate decides what stays. If the candidate hasn't changed anything, the review isn't finished.
 
 ## Settings
 
-If `interview/config.md` exists, read it and the rules in `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. For this skill: Use `time` to put a minute budget on each build step, `stack` to name the components, and `level` to set how much the plan weighs trade-offs (senior) against a single working path (entry).
+If `interview/config.md` exists, read it and `${CLAUDE_PLUGIN_ROOT}/skills/configure/references/settings.md`. Use `time` for the minute budget, `stack` to name the components, and `level` to set how much the plan weighs trade-offs (senior) against a single working path (entry).
 
 ## Done when
 
-The file has components, build order, the riskiest part, a Not-doing list, and one change the candidate made to the AI's first draft.
+`plan.md` has all seven sections, the work split has no overlapping files, and one change the candidate made is recorded.
+
+Next: `/interview-skills:implement`.

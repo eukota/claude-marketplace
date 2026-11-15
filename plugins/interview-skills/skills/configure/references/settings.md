@@ -22,13 +22,26 @@ skip: none
 | Key | Values | Default | Used by |
 | --- | --- | --- | --- |
 | `mode` | `practice`, `real` | `practice` | all skills |
-| `time` | minutes for the build segment | `60` | clarify, plan, verify, integration-tests |
-| `level` | `entry`, `mid`, `senior` | `mid` | clarify, plan, direct, review |
-| `stack` | free text: language and framework | whatever is already in the project | plan, direct, verify, integration-tests |
-| `ai_tool` | free text | the tool in use | direct |
+| `time` | minutes for the build segment | `60` | prep, plan, implement, test |
+| `level` | `entry`, `mid`, `senior` | `mid` | prep, plan, implement |
+| `stack` | free text: language and framework | whatever is already in the project | prep, plan, implement, test |
+| `ai_tool` | free text | the tool in use | implement |
 | `voice` | `yes`, `no` | `no` | narrate |
 | `narration` | `short`, `full` | `full` | narrate |
-| `skip` | comma-separated skill names, or `none` | `none` | all skills |
+| `skip` | comma-separated skill names (`prep`, `plan`, `implement`, `test`, `narrate`), or `none` | `none` | all skills |
+
+## Time split
+
+The four steps share `time`. Suggested split, used by each step skill to set its budget:
+
+| Step | Share | Of 60 minutes |
+| --- | --- | --- |
+| `prep` | 15% | 9 |
+| `plan` | 15% | 9 |
+| `implement` | 40% | 24 |
+| `test` | 30% | 18 |
+
+`narrate` has no budget; use it throughout. If a step runs over, cut scope in the next step instead of skipping its artifact.
 
 ## Rules for every skill
 
