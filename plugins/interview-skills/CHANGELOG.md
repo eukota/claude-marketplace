@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+- Removed the unused `primitives` field from `plugin.json`; Claude Code ignores it at load time (reported by `claude plugin validate`).
+
 ## 0.4.0
 
 - New `practice` skill, the coach and front door: triggers on "I'm going to practice an interview question", checks for a clean folder and fresh session, gets the question and who plays the interviewer, then walks the five steps, timing each against its budget and asking what the candidate decided. Writes `interview/practice.md`.

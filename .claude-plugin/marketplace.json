@@ -61,7 +61,7 @@
     },
     {
       "name": "interview-skills",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "source": "./plugins/interview-skills",
       "description": "A practice and teaching tool for AI-assisted technical interviews, not for use in the interview itself: a five-step flow of prep, plan, implement, test and commentary (many parallel agents, an observability dashboard and clickable tests), plus practice (the coach), configure, observability and narrate. Each step leaves a short artifact to review.",
       "license": "MIT",
