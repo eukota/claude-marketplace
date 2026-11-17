@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -22,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import memory
 import bootstrap
 import compress
+import llm
 import scrub
 
 MIN_NEW_ROWS = 20
@@ -236,6 +238,7 @@ class Counts:
     corrections: int = 0
     unrouted: int = 0
     failed_batches: int = 0
+    stopped: bool = False
 
 
 def exchange_id(ex: Exchange) -> str:
@@ -256,12 +259,14 @@ def _classify_batch(completer, batch):
     return {it.get("n"): it for it in raw if isinstance(it, dict)}
 
 
-def process_exchanges(store, completer, exchanges, run_id, *, min_confidence=0.6, max_batches=10):
+def process_exchanges(store, completer, exchanges, run_id, *, min_confidence=0.6, max_batches=10, stop=None):
     """Classify exchanges and write what they reveal.
 
     Returns (Counts, handled): `handled` is how many of the input exchanges are
     fully dealt with, so the caller advances its cursor only that far. A failed
-    batch stops the run there; earlier batches stay written.
+    batch stops the run there; earlier batches stay written. `stop`, if given, is
+    checked after each model call and before anything is written; when it returns
+    true the run ends there (used to honor the capture toggle mid-run).
     """
     counts = Counts(read=len(exchanges))
     brains = {b.domain: b for b in store.get_brains()}
@@ -291,6 +296,9 @@ def process_exchanges(store, completer, exchanges, run_id, *, min_confidence=0.6
             by_n = _classify_batch(completer, [(e.timestamp, a, u, e.session_id) for e, u, a, _ in todo])
             if by_n is None:
                 counts.failed_batches += 1
+                break
+            if stop and stop():
+                counts.stopped = True
                 break
             for i, (e, user, asst, eid) in enumerate(todo, 1):
                 _write_item(store, counts, run_id, e, user, asst, eid, by_n.get(i) or {},
@@ -406,3 +414,189 @@ def distill(store, completer, brain_id: str, run_id: str, mode: str, *,
         store.save_proposal(pr)
         store.record_run_item(run_id, "proposal", pr.id)
     return created
+
+
+# ------------------------------------------------------------------ one run
+
+MAX_BATCHES = 10
+
+
+def log_path() -> Path:
+    return memory.DATA_DIR / "logs" / "auto-latest.log"
+
+
+def append_log(line: str) -> None:
+    path = log_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        f.write(line + "\n")
+
+
+def _capture_off() -> bool:
+    return not memory.MemoryStore.load_settings().capture_enabled
+
+
+def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetime] = None,
+             max_batches: int = MAX_BATCHES) -> dict:
+    """One pass: read new prompts, classify, write decisions, queue proposals.
+
+    Never logs or stores prompt text beyond the scrubbed exchange rows. Returns a
+    dict with at least "status": ok | partial | idle | disabled | capture-off | locked.
+    """
+    now = now or datetime.now()
+    settings = memory.MemoryStore.load_settings()
+    if settings.auto_mode == "off":
+        return {"status": "disabled"}
+    if not settings.capture_enabled:
+        return {"status": "capture-off"}
+
+    lock = RunLock()
+    if not lock.acquire():
+        return {"status": "locked"}
+    previous_env = os.environ.get(scrub.INTERNAL_ENV)
+    os.environ[scrub.INTERNAL_ENV] = "1"  # our own `claude -p` calls must not be captured
+    try:
+        store = memory.MemoryStore(Path(db_path))
+        cursor = load_cursor()
+        all_rows, end_offset = read_new(pending_path(), cursor)
+        if not all_rows:
+            return {"status": "idle"}
+        window = all_rows[: max_batches * bootstrap.BATCH]
+
+        if dry_run:
+            return _dry_run(completer, all_rows, window)
+
+        run_id = now.strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:6]
+        started = time.monotonic()
+        snap = memory.checkpoint(Path(db_path), f"pre-auto-{run_id}")
+        store.start_run(run_id)
+        errors = 0
+        try:
+            exchanges = pair_with_transcripts(window, transcripts_root())
+            counts, handled = process_exchanges(
+                store, completer, exchanges, run_id, max_batches=max_batches, stop=_capture_off)
+            if handled == len(all_rows):
+                save_cursor(end_offset)
+            elif handled > 0:
+                save_cursor(window[handled - 1]["_end"])
+
+            proposals = 0
+            if not counts.failed_batches and not counts.stopped:
+                for brain in store.get_brains():
+                    try:
+                        if due_for_distill(store, brain.id, now):
+                            proposals += len(distill(store, completer, brain.id, run_id,
+                                                     settings.auto_mode, now=now))
+                    except Exception as e:
+                        errors += 1
+                        print(f"  ! distill failed for {brain.name}: {e}", file=sys.stderr)
+            memory.write_session_context(Path(db_path))
+        except Exception:
+            store.finish_run(run_id, status="error", errors=1, checkpoint=snap.name if snap else None)
+            append_log(f"{now.isoformat()} run={run_id} status=error checkpoint={snap.name if snap else '-'}")
+            raise
+
+        if counts.stopped:
+            status = "capture-off"
+        elif counts.failed_batches or errors:
+            status = "partial"
+        else:
+            status = "ok"
+        errors += counts.failed_batches
+        store.finish_run(run_id, rows_read=counts.read, scrubbed=counts.scrubbed,
+                         classified_json=json.dumps(counts.classified), decisions=counts.decisions,
+                         proposals=proposals, errors=errors, checkpoint=snap.name if snap else None,
+                         status=status)
+        append_log(f"{now.isoformat()} run={run_id} status={status} read={counts.read} "
+                   f"handled={handled} scrubbed={counts.scrubbed} internal={counts.internal} "
+                   f"classified={json.dumps(counts.classified, sort_keys=True)} decisions={counts.decisions} "
+                   f"proposals={proposals} errors={errors} checkpoint={snap.name if snap else '-'} "
+                   f"duration={time.monotonic() - started:.1f}s")
+        return {"status": status, "run_id": run_id, "counts": counts, "handled": handled,
+                "proposals": proposals}
+    finally:
+        if previous_env is None:
+            os.environ.pop(scrub.INTERNAL_ENV, None)
+        else:
+            os.environ[scrub.INTERNAL_ENV] = previous_env
+        lock.release()
+
+
+def _dry_run(completer, all_rows, window) -> dict:
+    """Classify one batch, write nothing: batch estimate plus a kind histogram."""
+    exchanges = pair_with_transcripts(window[:bootstrap.BATCH], transcripts_root())
+    batch = []
+    for e in exchanges:
+        if scrub.is_internal_prompt(e.user):
+            continue
+        user, _ = scrub.scrub(e.user)
+        asst, _ = scrub.scrub(e.assistant)
+        if user.strip():
+            batch.append((e.timestamp, asst, user, e.session_id))
+    by_n = _classify_batch(completer, batch) if batch else {}
+    histogram = {}
+    for i in range(1, len(batch) + 1):
+        kind = (by_n or {}).get(i, {}).get("kind", "none")
+        histogram[kind] = histogram.get(kind, 0) + 1
+    return {"status": "dry-run", "dry_run": True, "rows": len(all_rows),
+            "batches": -(-len(all_rows) // bootstrap.BATCH), "histogram": histogram}
+
+
+# ------------------------------------------------------------------- status
+
+def status_text(store, now: Optional[datetime] = None) -> str:
+    settings = memory.MemoryStore.load_settings()
+    rows, _ = read_new(pending_path(), load_cursor())
+    last = store.last_run()
+    lines = [
+        f"auto_mode: {settings.auto_mode}",
+        f"capture: {'on' if settings.capture_enabled else 'off'}",
+        f"backlog: {len(rows)} unprocessed prompt(s), about {-(-len(rows) // bootstrap.BATCH)} batch(es)",
+    ]
+    if last:
+        lines.append(f"last run: {last['run_id']} {last['status']} started {last['started_at']} "
+                     f"decisions={last['decisions']} proposals={last['proposals']} errors={last['errors']}")
+    else:
+        lines.append("last run: none")
+    lines.append(f"proposals awaiting review: {len(store.get_proposals())}")
+    lines.append("correction rate (7d): n/a")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------- CLI
+
+def main(argv=None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(description="Meldwerkes automatic learning loop")
+    ap.add_argument("--db", default=str(memory.DEFAULT_DB))
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    rn = sub.add_parser("run")
+    rn.add_argument("--dry-run", action="store_true")
+    llm.add_auth_arg(rn)
+    sub.add_parser("status")
+    en = sub.add_parser("enable")
+    en.add_argument("--mode", choices=["propose", "apply"], default="propose")
+    sub.add_parser("disable")
+    args = ap.parse_args(argv)
+
+    if args.cmd in ("enable", "disable"):
+        settings = memory.MemoryStore.load_settings()
+        settings.auto_mode = args.mode if args.cmd == "enable" else "off"
+        memory.MemoryStore.save_settings(settings)
+        print(f"auto_mode: {settings.auto_mode}")
+        return 0
+    store = memory.MemoryStore(Path(args.db))
+    if args.cmd == "status":
+        print(status_text(store))
+        return 0
+    completer = llm.Completer(llm.resolve_auth(args.auth))
+    result = run_once(args.db, completer, dry_run=args.dry_run)
+    shown = {k: v for k, v in result.items() if k != "counts"}
+    if "counts" in result:
+        shown["counts"] = result["counts"].__dict__
+    print(json.dumps(shown, indent=2, default=str))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
