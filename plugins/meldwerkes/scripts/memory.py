@@ -569,7 +569,12 @@ def write_session_context(db_path: Path = None) -> Optional[Path]:
                            b.name, pr))
     ranked.sort(key=lambda t: -t[0])
 
-    if not ranked:
+    try:
+        waiting = len(store.get_proposals())
+    except Exception:
+        waiting = 0
+
+    if not ranked and not waiting:
         try:
             SESSION_CONTEXT_FILE.unlink(missing_ok=True)
         except Exception:
@@ -578,6 +583,9 @@ def write_session_context(db_path: Path = None) -> Optional[Path]:
 
     lines = [f"## Meldwerkes — {len(brains)} mind(s), "
              f"auto-answer {'on' if settings.principle_auto_answer else 'off'}", ""]
+    if waiting:
+        # Before the principles, so the character budget never cuts it off.
+        lines.append(f"- {waiting} proposal(s) awaiting review (/meldwerkes-auto)")
     for eff, brain_name, pr in ranked[:CONTEXT_MAX_PRINCIPLES]:
         lines.append(f"- [{brain_name}] {pr.principle} ({eff:.0%})")
 

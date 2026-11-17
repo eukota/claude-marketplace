@@ -10,6 +10,7 @@ sits in the path of a turn.
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 import uuid
@@ -141,6 +142,10 @@ class RunLock:
             return False
         except PermissionError:
             return True  # exists, owned by someone else
+
+    def is_held(self) -> bool:
+        """True when another live process holds the lock (does not take it)."""
+        return self.path.exists() and self._holder_alive()
 
     def release(self) -> None:
         if self.held:
@@ -542,6 +547,43 @@ def _dry_run(completer, all_rows, window) -> dict:
             "batches": -(-len(all_rows) // bootstrap.BATCH), "histogram": histogram}
 
 
+# ---------------------------------------------------------------- hook entry
+
+def maybe_run(*, fallback: bool = False, now: Optional[datetime] = None) -> str:
+    """Hook entry point: start a detached run if one is due. Never raises.
+
+    Called from SessionEnd (and, with fallback, SessionStart), so it must cost
+    milliseconds: it only reads small files and spawns `auto.py run` in its own
+    session, then returns. Returns a short status string for tests and logs.
+    """
+    try:
+        now = now or datetime.now()
+        settings = memory.MemoryStore.load_settings()
+        if settings.auto_mode == "off":
+            return "off"
+        if not settings.capture_enabled:
+            return "capture-off"
+        if not memory.DEFAULT_DB.exists():
+            return "no-db"
+        if RunLock().is_held():
+            return "locked"
+        rows, _ = read_new(pending_path(), load_cursor())
+        last = memory.MemoryStore(memory.DEFAULT_DB).last_run()
+        if not should_run(len(rows), last["started_at"] if last else None, now, fallback=fallback):
+            return "not-due"
+        if not llm.subscription_available():
+            return "no-claude"
+        path = log_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        out = open(path, "a")
+        subprocess.Popen(
+            [sys.executable, os.path.abspath(__file__), "run", "--auth", "subscription"],
+            stdin=subprocess.DEVNULL, stdout=out, stderr=out, start_new_session=True, close_fds=True)
+        return "spawned"
+    except Exception:
+        return "error"
+
+
 # ------------------------------------------------------------------- status
 
 def status_text(store, now: Optional[datetime] = None) -> str:
@@ -574,11 +616,16 @@ def main(argv=None) -> int:
     rn.add_argument("--dry-run", action="store_true")
     llm.add_auth_arg(rn)
     sub.add_parser("status")
+    mr = sub.add_parser("maybe-run")
+    mr.add_argument("--fallback", action="store_true")
     en = sub.add_parser("enable")
     en.add_argument("--mode", choices=["propose", "apply"], default="propose")
     sub.add_parser("disable")
     args = ap.parse_args(argv)
 
+    if args.cmd == "maybe-run":
+        maybe_run(fallback=args.fallback)  # never raises; a hook must not fail a turn
+        return 0
     if args.cmd in ("enable", "disable"):
         settings = memory.MemoryStore.load_settings()
         settings.auto_mode = args.mode if args.cmd == "enable" else "off"

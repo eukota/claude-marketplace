@@ -10,6 +10,15 @@
             "statusMessage": "Loading Meldwerkes principles"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/auto.py\" maybe-run --fallback 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -20,6 +29,17 @@
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/capture_prompt.py\" 2>/dev/null || true",
             "timeout": 5,
             "statusMessage": "Recording signal"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/auto.py\" maybe-run 2>/dev/null || true",
+            "timeout": 5
           }
         ]
       }
