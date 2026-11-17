@@ -15,6 +15,7 @@ Usage:
   python3 history.py checkpoint --label "before experiment"
   python3 history.py list
   python3 history.py retract --since 2026-08-11 [--brain-id <id>] [--dry-run]
+  python3 history.py retract --run-id <id>        # undo one automatic-loop run
   python3 history.py restore --snapshot <name>
 """
 
@@ -29,6 +30,33 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from memory import (MemoryStore, DEFAULT_DB, CHECKPOINT_DIR,
                     checkpoint, list_checkpoints, restore_checkpoint)
+
+
+def retract_run(store, run_id: str, *, snapshot: bool = True) -> dict:
+    """Remove everything one automatic run wrote: decisions (and their corrections),
+    exchanges and proposals. Principles already accepted from this run's proposals
+    stay; review them with /meldwerkes-review."""
+    items = store.get_run_items(run_id)
+    if snapshot:
+        checkpoint(store.db_path, f"pre-retract-run-{run_id}")
+    by_kind = {}
+    for kind, item_id in items:
+        by_kind.setdefault(kind, []).append(item_id)
+    counts = {k: len(v) for k, v in by_kind.items()}
+    counts.setdefault("decisions", 0)
+    counts["decisions"] = len(by_kind.get("decision", []))
+    with sqlite3.connect(store.db_path) as conn:
+        for did in by_kind.get("decision", []):
+            conn.execute("DELETE FROM corrections WHERE decision_id = ?", (did,))
+            conn.execute("DELETE FROM decisions WHERE id = ?", (did,))
+        for xid in by_kind.get("exchange", []):
+            conn.execute("DELETE FROM exchanges WHERE id = ?", (xid,))
+        conn.execute("DELETE FROM proposals WHERE run_id = ?", (run_id,))
+        conn.execute("DELETE FROM run_items WHERE run_id = ?", (run_id,))
+        conn.execute("UPDATE auto_runs SET status = 'retracted' WHERE run_id = ?", (run_id,))
+    from memory import write_session_context
+    write_session_context(store.db_path)
+    return counts
 
 
 def parse_since(value: str) -> str:
@@ -103,6 +131,12 @@ def cmd_retract(args):
     db = Path(args.db)
     if not db.exists():
         sys.exit("No store found.")
+    if args.run_id:
+        counts = retract_run(MemoryStore(db), args.run_id)
+        print(f"Retracted automatic run {args.run_id}: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+        return
+    if not args.since:
+        sys.exit("Give --since or --run-id.")
     since = parse_since(args.since)
     counts = _counts(db, since, args.brain_id)
     total = sum(counts.values())
@@ -159,7 +193,8 @@ def main():
     cp = sub.add_parser("checkpoint", parents=[common]); cp.add_argument("--label")
     sub.add_parser("list", parents=[common])
     rt = sub.add_parser("retract", parents=[common])
-    rt.add_argument("--since", required=True, help="YYYY-MM-DD, or 1d / 12h")
+    rt.add_argument("--since", help="YYYY-MM-DD, or 1d / 12h")
+    rt.add_argument("--run-id", help="retract one automatic run (see logs/auto-latest.log)")
     rt.add_argument("--brain-id"); rt.add_argument("--dry-run", action="store_true")
     rs = sub.add_parser("restore", parents=[common]); rs.add_argument("--snapshot", required=True)
     args = ap.parse_args()

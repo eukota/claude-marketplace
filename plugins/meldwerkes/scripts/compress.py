@@ -18,8 +18,10 @@ import llm
 COMPLETER = None
 
 
-def extract_principles(store: MemoryStore, brain_id: str, num_recent: int) -> list[Principle]:
-    decisions = store.get_decisions(brain_id)[-num_recent:]
+def extract_principles(store: MemoryStore, brain_id: str, num_recent: int,
+                       exclude_ids: frozenset = frozenset(),
+                       existing: tuple = ()) -> list[Principle]:
+    decisions = [d for d in store.get_decisions(brain_id) if d.id not in exclude_ids][-num_recent:]
     corrections = store.get_corrections(brain_id)
 
     if not decisions:
@@ -40,8 +42,11 @@ def extract_principles(store: MemoryStore, brain_id: str, num_recent: int) -> li
         for c in relevant_corrections
     ]) or "No corrections."
 
-    text = COMPLETER.complete(f"""Analyze this decision log and extract key principles.
+    known = ("\nAlready known principles (do not repeat or rephrase these; return only genuinely new ones):\n"
+             + "\n".join(f"- {t}" for t in existing) + "\n") if existing else ""
 
+    text = COMPLETER.complete(f"""Analyze this decision log and extract key principles.
+{known}
 Decisions:
 {dec_text}
 
