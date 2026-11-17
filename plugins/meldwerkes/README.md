@@ -49,8 +49,12 @@ run does both:
 - **Propose mode (default once enabled):** new principles wait in a queue; nothing
   changes what Claude is told until you accept it with `/meldwerkes-auto`.
   **Apply mode** saves them directly. Both take a checkpoint first.
-- Secret-looking lines are removed before any model call and are never stored or
-  logged. The loop's own model calls are not captured back into the store.
+- Secret-looking lines (credentials, keys, PEM blocks, tokens, passwords in URLs)
+  are removed before any model call and are never stored in the new tables or the
+  run log. The scrub is pattern-based, so it is a safety net, not a guarantee. The
+  raw capture file `~/.small-brain/pending.jsonl` is written by the capture hook
+  before scrubbing, as it always was. The loop's own model calls are not captured
+  back into the store.
 
 It is **off until you run `/meldwerkes-auto`** (`auto.py enable`), because it
 sends your prompts, scrubbed, to a model. Where to look and how to undo:
@@ -69,9 +73,11 @@ by several domain minds plus a learned orchestrator than by one pooled mind. The
 analogy is a heuristic, so the plugin tests it. Once enough labelled exchanges
 exist, a held-out set is fixed once (`heldout.json`, never regenerated, drawn only
 from exchanges no principle was distilled from). `eval_fourier.py run` then predicts
-whether you would object to an assistant action using a pooled mind versus the live
-minds. Multi-mind is declared the winner only if it beats pooled by more than the
-run-to-run noise; otherwise the verdict is `tie: keep the simpler structure`.
+whether you would object to an assistant action using one pooled mind versus
+per-mind principles, both distilled from the same recent decisions so the only
+difference is the grouping. Multi-mind is declared the winner only if it beats
+pooled by more than the run-to-run noise and an item-level bootstrap interval
+excludes zero; otherwise the verdict is `tie: keep the simpler structure`.
 The ground truth is a proxy (see the script), so read the comparison, not the
 absolute correlation. The second measure is the weekly correction rate, shown in
 `auto.py status` and `/meldwerkes-report`.

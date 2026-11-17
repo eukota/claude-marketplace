@@ -7,9 +7,12 @@ review. It is started detached and throttled by a SessionEnd hook, so it never
 sits in the path of a turn.
 """
 
+import fcntl
 import hashlib
 import json
 import os
+import re
+import sqlite3
 import subprocess
 import sys
 import time
@@ -107,54 +110,51 @@ def should_run(new_rows: int, last_run_at: Optional[str], now: datetime,
 # --------------------------------------------------------------------- lock
 
 class RunLock:
-    """PID lock file: one processor at a time; a dead holder's lock is replaced."""
+    """One processor at a time, backed by the kernel (flock), not a PID file.
+
+    flock is released automatically when the holder dies, and acquiring it is
+    atomic, so there is no stale-lock stealing and no window where a live lock
+    looks empty. The file itself is persistent; its content (the PID) is for people.
+    """
 
     def __init__(self):
         self.path = memory.DATA_DIR / "auto.lock"
         self.held = False
+        self._fd = None
 
     def acquire(self) -> bool:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        for _ in range(2):
-            try:
-                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            except FileExistsError:
-                if self._holder_alive():
-                    return False
-                try:
-                    self.path.unlink()
-                except FileNotFoundError:
-                    pass
-                continue
-            with os.fdopen(fd, "w") as f:
-                f.write(str(os.getpid()))
-            self.held = True
-            return True
-        return False
-
-    def _holder_alive(self) -> bool:
+        fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o644)
         try:
-            pid = int(self.path.read_text().strip())
-            os.kill(pid, 0)
-            return True
-        except (ValueError, FileNotFoundError):
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            os.close(fd)
             return False
-        except ProcessLookupError:
-            return False
-        except PermissionError:
-            return True  # exists, owned by someone else
+        os.ftruncate(fd, 0)
+        os.write(fd, str(os.getpid()).encode())
+        self._fd, self.held = fd, True
+        return True
 
     def is_held(self) -> bool:
-        """True when another live process holds the lock (does not take it)."""
-        return self.path.exists() and self._holder_alive()
+        """True when some process holds the lock (does not take it)."""
+        if not self.path.exists():
+            return False
+        fd = os.open(self.path, os.O_RDWR)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            return True
+        else:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            return False
+        finally:
+            os.close(fd)
 
     def release(self) -> None:
-        if self.held:
-            try:
-                self.path.unlink()
-            except FileNotFoundError:
-                pass
-            self.held = False
+        if self.held and self._fd is not None:
+            fcntl.flock(self._fd, fcntl.LOCK_UN)
+            os.close(self._fd)
+            self._fd, self.held = None, False
 
     def __enter__(self):
         self.acquire()
@@ -366,6 +366,10 @@ def _naive(ts: str) -> Optional[datetime]:
         return None
 
 
+def _norm(text: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text.lower()).split())
+
+
 def _last_distilled(store, brain_id: str) -> Optional[datetime]:
     stamps = [_naive(p.timestamp) for p in store.get_principles(brain_id)]
     stamps += [_naive(p.created_at) for st in ("proposed", "accepted", "rejected")
@@ -377,8 +381,17 @@ def _last_distilled(store, brain_id: str) -> Optional[datetime]:
 def due_for_distill(store, brain_id: str, now: datetime) -> bool:
     """5+ decisions since the last distillation, or 14 days with any new one."""
     last = _last_distilled(store, brain_id)
+    # A decision's timestamp is when the prompt was typed, so a backlog drained after
+    # a distillation looks old. Decisions written by a run that started after the
+    # last distillation are new evidence whatever their prompt time.
+    from_later_runs = set()
+    if last is not None:
+        with sqlite3.connect(store.db_path) as c:
+            from_later_runs = {r[0] for r in c.execute(
+                "SELECT ri.item_id FROM run_items ri JOIN auto_runs r ON r.run_id = ri.run_id "
+                "WHERE ri.item_kind = 'decision' AND r.started_at > ?", (last.isoformat(),))}
     new = [d for d in store.get_decisions(brain_id)
-           if last is None or (_naive(d.timestamp) or datetime.min) > last]
+           if last is None or d.id in from_later_runs or (_naive(d.timestamp) or datetime.min) > last]
     if len(new) >= DISTILL_MIN_ITEMS:
         return True
     return bool(new) and last is not None and (now - last) >= timedelta(days=DISTILL_MAX_DAYS)
@@ -393,7 +406,17 @@ def distill(store, completer, brain_id: str, run_id: str, mode: str, *,
     """
     now = now or datetime.now()
     compress.COMPLETER = completer
-    principles = compress.extract_principles(store, brain_id, num_recent, exclude_ids)
+    known = [p.principle for p in store.get_principles(brain_id)]
+    known += [p.payload.get("principle") for p in store.get_proposals(brain_id=brain_id)
+              if p.kind == "principle" and p.payload.get("principle")]
+    principles = compress.extract_principles(store, brain_id, num_recent, exclude_ids, tuple(known))
+    seen = {_norm(t) for t in known}
+    fresh = []
+    for p in principles:  # the model is told, but restates things anyway: drop exact repeats
+        if _norm(p.principle) not in seen:
+            seen.add(_norm(p.principle))
+            fresh.append(p)
+    principles = fresh
     metas = compress.extract_meta_principles(store, brain_id)
     created = []
     if mode == "apply":
@@ -481,10 +504,15 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
             exchanges = pair_with_transcripts(window, transcripts_root())
             counts, handled = process_exchanges(
                 store, completer, exchanges, run_id, max_batches=max_batches, stop=_capture_off)
+            skipped_batch = False
             if handled == len(all_rows):
                 save_cursor(end_offset)
             elif handled > 0:
                 save_cursor(window[handled - 1]["_end"])
+            if counts.failed_batches and handled == 0:
+                skipped_batch = _note_failure(cursor, window)
+            elif handled > 0 or not counts.failed_batches:
+                _save_failures({})
 
             proposals = 0
             if not counts.failed_batches and not counts.stopped:
@@ -498,7 +526,7 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
                     try:
                         if due_for_distill(store, brain.id, now):
                             proposals += len(distill(store, completer, brain.id, run_id,
-                                                     settings.auto_mode, exclude_ids=excluded, now=now))
+                                                     settings.auto_mode, exclude_ids=excluded))
                     except Exception as e:
                         errors += 1
                         print(f"  ! distill failed for {brain.name}: {e}", file=sys.stderr)
@@ -523,7 +551,7 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
                    f"handled={handled} scrubbed={counts.scrubbed} internal={counts.internal} "
                    f"classified={json.dumps(counts.classified, sort_keys=True)} decisions={counts.decisions} "
                    f"proposals={proposals} errors={errors} checkpoint={snap.name if snap else '-'} "
-                   f"duration={time.monotonic() - started:.1f}s")
+                   f"duration={time.monotonic() - started:.1f}s" + (" skipped_batch=1" if skipped_batch else ""))
         return {"status": status, "run_id": run_id, "counts": counts, "handled": handled,
                 "proposals": proposals}
     finally:
@@ -532,6 +560,45 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
         else:
             os.environ[scrub.INTERNAL_ENV] = previous_env
         lock.release()
+
+
+MAX_BATCH_FAILURES = 3
+
+
+def _failures_file() -> Path:
+    return memory.DATA_DIR / "auto-failures.json"
+
+
+def _load_failures() -> dict:
+    try:
+        return json.loads(_failures_file().read_text())
+    except Exception:
+        return {}
+
+
+def _save_failures(data: dict) -> None:
+    try:
+        memory.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _failures_file().write_text(json.dumps(data))
+    except OSError:
+        pass
+
+
+def _note_failure(cursor: int, window: list) -> bool:
+    """Count consecutive no-progress failures at one cursor position.
+
+    A batch the model can never parse would otherwise be retried, and re-billed,
+    forever while everything behind it waits. After MAX_BATCH_FAILURES attempts the
+    cursor moves past that batch. Returns True when it did.
+    """
+    seen = _load_failures()
+    count = seen.get("count", 0) + 1 if seen.get("offset") == cursor else 1
+    if count >= MAX_BATCH_FAILURES and window:
+        save_cursor(window[min(bootstrap.BATCH, len(window)) - 1]["_end"])
+        _save_failures({})
+        return True
+    _save_failures({"offset": cursor, "count": count})
+    return False
 
 
 def _dry_run(completer, all_rows, window) -> dict:
@@ -556,6 +623,24 @@ def _dry_run(completer, all_rows, window) -> dict:
 
 # ---------------------------------------------------------------- hook entry
 
+def _last_run_started(db_path) -> Optional[str]:
+    """When the last run began, read-only and with a short timeout.
+
+    A hook must never wait on the database: opening the store normally runs schema
+    statements and would sit out sqlite's 5-second busy timeout if a run holds a
+    write lock. A locked or missing database just means "unknown".
+    """
+    try:
+        conn = sqlite3.connect(Path(db_path).as_uri() + "?mode=ro", uri=True, timeout=0.2)
+        try:
+            row = conn.execute("SELECT started_at FROM auto_runs ORDER BY started_at DESC LIMIT 1").fetchone()
+        finally:
+            conn.close()
+        return row[0] if row else None
+    except sqlite3.Error:
+        return None
+
+
 def maybe_run(*, fallback: bool = False, now: Optional[datetime] = None) -> str:
     """Hook entry point: start a detached run if one is due. Never raises.
 
@@ -575,8 +660,7 @@ def maybe_run(*, fallback: bool = False, now: Optional[datetime] = None) -> str:
         if RunLock().is_held():
             return "locked"
         rows, _ = read_new(pending_path(), load_cursor())
-        last = memory.MemoryStore(memory.DEFAULT_DB).last_run()
-        if not should_run(len(rows), last["started_at"] if last else None, now, fallback=fallback):
+        if not should_run(len(rows), _last_run_started(memory.DEFAULT_DB), now, fallback=fallback):
             return "not-due"
         if not llm.subscription_available():
             return "no-claude"
