@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import memory
 import bootstrap
 import compress
+import heldout
 import llm
 import scrub
 
@@ -487,11 +488,17 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
 
             proposals = 0
             if not counts.failed_batches and not counts.stopped:
+                try:
+                    heldout.create(store)  # before distilling, so its decisions are excluded from the start
+                except Exception as e:
+                    errors += 1
+                    print(f"  ! held-out split failed: {e}", file=sys.stderr)
+                excluded = frozenset(heldout.decision_ids(store))
                 for brain in store.get_brains():
                     try:
                         if due_for_distill(store, brain.id, now):
                             proposals += len(distill(store, completer, brain.id, run_id,
-                                                     settings.auto_mode, now=now))
+                                                     settings.auto_mode, exclude_ids=excluded, now=now))
                     except Exception as e:
                         errors += 1
                         print(f"  ! distill failed for {brain.name}: {e}", file=sys.stderr)
@@ -601,7 +608,9 @@ def status_text(store, now: Optional[datetime] = None) -> str:
     else:
         lines.append("last run: none")
     lines.append(f"proposals awaiting review: {len(store.get_proposals())}")
-    lines.append("correction rate (7d): n/a")
+    week = heldout.correction_rate_by_week(store, now or datetime.now(), weeks=1)[0]
+    lines.append("correction rate (7d): " + ("n/a" if week["rate"] is None
+                                              else f"{week['rate']:.1f} per 100 (n={week['n']})"))
     return "\n".join(lines)
 
 
