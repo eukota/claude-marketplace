@@ -15,6 +15,7 @@ That also removes a model call from every keystroke-driven turn.
 """
 
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +24,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 
 def main() -> int:
+    # The automatic loop's own model calls run `claude -p`, which fires this hook.
+    # Recording them would feed the loop its own prompts.
+    if os.environ.get("MELDWERKES_INTERNAL"):
+        return 0
+
     try:
         payload = json.load(sys.stdin)
     except Exception:
