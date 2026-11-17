@@ -21,6 +21,7 @@ from typing import Optional
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import memory
 import bootstrap
+import compress
 import scrub
 
 MIN_NEW_ROWS = 20
@@ -336,3 +337,72 @@ def _write_item(store, counts, run_id, e, user, asst, eid, item, brains, min_con
         assistant=asst[:600], user=user[:900], decision_id=decision_id, paired=int(e.paired))
     store.record_run_item(run_id, "exchange", eid)
     counts.classified[kind] = counts.classified.get(kind, 0) + 1
+
+
+# -------------------------------------------------------------- distillation
+
+DISTILL_MIN_ITEMS = 5
+DISTILL_MAX_DAYS = 14
+
+
+def _naive(ts: str) -> Optional[datetime]:
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00")).replace(tzinfo=None)
+    except (ValueError, AttributeError):
+        return None
+
+
+def _last_distilled(store, brain_id: str) -> Optional[datetime]:
+    stamps = [_naive(p.timestamp) for p in store.get_principles(brain_id)]
+    stamps += [_naive(p.created_at) for st in ("proposed", "accepted", "rejected")
+               for p in store.get_proposals(status=st, brain_id=brain_id)]
+    stamps = [t for t in stamps if t]
+    return max(stamps) if stamps else None
+
+
+def due_for_distill(store, brain_id: str, now: datetime) -> bool:
+    """5+ decisions since the last distillation, or 14 days with any new one."""
+    last = _last_distilled(store, brain_id)
+    new = [d for d in store.get_decisions(brain_id)
+           if last is None or (_naive(d.timestamp) or datetime.min) > last]
+    if len(new) >= DISTILL_MIN_ITEMS:
+        return True
+    return bool(new) and last is not None and (now - last) >= timedelta(days=DISTILL_MAX_DAYS)
+
+
+def distill(store, completer, brain_id: str, run_id: str, mode: str, *,
+            exclude_ids: frozenset = frozenset(), now: Optional[datetime] = None, num_recent: int = 20):
+    """Distil principles (and meta-principles) for one mind.
+
+    mode "propose": queue them as proposals. mode "apply": checkpoint, then save
+    them directly. Returns the proposals created (empty in apply mode).
+    """
+    now = now or datetime.now()
+    compress.COMPLETER = completer
+    principles = compress.extract_principles(store, brain_id, num_recent, exclude_ids)
+    metas = compress.extract_meta_principles(store, brain_id)
+    created = []
+    if mode == "apply":
+        memory.checkpoint(store.db_path, f"pre-apply-{run_id}")
+        for p in principles:
+            store.save_principle(p)
+        for m in metas:
+            store.save_meta_principle(m)
+        return created
+    for p in principles:
+        created.append(memory.Proposal(
+            id=str(uuid.uuid4()), brain_id=brain_id, kind="principle",
+            payload={"principle": p.principle, "confidence": p.confidence,
+                     "supporting_decisions": p.supporting_decisions,
+                     "conflicting_decisions": p.conflicting_decisions},
+            status="proposed", run_id=run_id, created_at=now.isoformat()))
+    for m in metas:
+        created.append(memory.Proposal(
+            id=str(uuid.uuid4()), brain_id=brain_id, kind="meta",
+            payload={"principle_a": m.principle_a, "principle_b": m.principle_b,
+                     "weighting": m.weighting, "context": m.context},
+            status="proposed", run_id=run_id, created_at=now.isoformat()))
+    for pr in created:
+        store.save_proposal(pr)
+        store.record_run_item(run_id, "proposal", pr.id)
+    return created

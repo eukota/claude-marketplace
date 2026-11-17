@@ -17,11 +17,12 @@ Usage:
 import argparse
 import os
 import sys
+import uuid
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from memory import MemoryStore, DEFAULT_DB, effective_confidence
+from memory import MemoryStore, DEFAULT_DB, effective_confidence, Principle, MetaPrinciple
 from memory import write_session_context
 
 
@@ -65,6 +66,59 @@ def cmd_list(store, args):
         print("\nNothing has decayed below half. The mind is current.")
 
 
+def find_proposal(store, prefix):
+    matches = [p for p in store.get_proposals() if p.id.startswith(prefix)]
+    if len(matches) != 1:
+        sys.exit(f"{'No' if not matches else 'Ambiguous'} proposal id: {prefix}")
+    return matches[0]
+
+
+def accept_proposal(store, proposal):
+    """Make a proposal real: save the principle or meta-principle, refresh context."""
+    now = datetime.now().isoformat()
+    if proposal.kind == "meta":
+        m = proposal.payload
+        store.save_meta_principle(MetaPrinciple(
+            id=str(uuid.uuid4()), brain_id=proposal.brain_id, timestamp=now,
+            principle_a=m["principle_a"], principle_b=m["principle_b"],
+            weighting=m["weighting"], context=m.get("context", "general"), times_applied=0))
+    else:
+        p = proposal.payload
+        store.save_principle(Principle(
+            id=str(uuid.uuid4()), brain_id=proposal.brain_id, timestamp=now,
+            principle=p["principle"], confidence=p.get("confidence", 0.5),
+            supporting_decisions=p.get("supporting_decisions", []),
+            conflicting_decisions=p.get("conflicting_decisions", [])))
+    store.decide_proposal(proposal.id, "accepted")
+    write_session_context(store.db_path)
+
+
+def reject_proposal(store, proposal):
+    store.decide_proposal(proposal.id, "rejected")
+
+
+def cmd_proposals(store, args):
+    if args.action == "list":
+        props = store.get_proposals(brain_id=args.brain_id)
+        if not props:
+            print("No proposals awaiting review.")
+            return
+        print(f"{len(props)} proposal(s) awaiting review\n")
+        for p in props:
+            text = p.payload.get("principle") or f"{p.payload.get('principle_a')} / {p.payload.get('principle_b')}: {p.payload.get('weighting')}"
+            print(f"{p.id[:8]}  [{p.kind}]  {text}")
+        return
+    if args.all:
+        targets = store.get_proposals(brain_id=args.brain_id)
+    elif args.id:
+        targets = [find_proposal(store, args.id)]
+    else:
+        sys.exit("Give --id <prefix> or --all.")
+    for p in targets:
+        (accept_proposal if args.action == "accept" else reject_proposal)(store, p)
+    print(f"{args.action.capitalize()}ed {len(targets)} proposal(s).")
+
+
 def main():
     ap = argparse.ArgumentParser()
     common = argparse.ArgumentParser(add_help=False)
@@ -80,8 +134,17 @@ def main():
     rv.add_argument("--text", required=True)
     rt = sub.add_parser("retire", parents=[common]);       rt.add_argument("--principle-id", required=True)
 
+    pp = sub.add_parser("proposals", parents=[common])
+    pp.add_argument("action", choices=["list", "accept", "reject"])
+    pp.add_argument("--id")
+    pp.add_argument("--all", action="store_true")
+    pp.add_argument("--brain-id")
+
     args = ap.parse_args()
     store = MemoryStore(Path(args.db))
+
+    if args.cmd == "proposals":
+        return cmd_proposals(store, args)
 
     if args.cmd == "list":
         return cmd_list(store, args)

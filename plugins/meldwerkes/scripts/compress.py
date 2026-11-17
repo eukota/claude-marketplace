@@ -18,8 +18,9 @@ import llm
 COMPLETER = None
 
 
-def extract_principles(store: MemoryStore, brain_id: str, num_recent: int) -> list[Principle]:
-    decisions = store.get_decisions(brain_id)[-num_recent:]
+def extract_principles(store: MemoryStore, brain_id: str, num_recent: int,
+                       exclude_ids: frozenset = frozenset()) -> list[Principle]:
+    decisions = [d for d in store.get_decisions(brain_id) if d.id not in exclude_ids][-num_recent:]
     corrections = store.get_corrections(brain_id)
 
     if not decisions:
