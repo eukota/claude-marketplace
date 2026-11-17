@@ -92,6 +92,18 @@ class RunOnceTests(unittest.TestCase):
             self.assertEqual(c.prompts, [])
             self.assertEqual(store.get_exchanges(), [])
 
+    def test_dry_run_works_while_auto_mode_is_off(self):
+        # the skill tells people to preview BEFORE enabling, so the preview must work while off
+        with temp_data_dir() as root:
+            store, brain = make_env(root, ["a", "b", "c"], mode="off")
+            c = StubCompleter([nones(3)])
+            res = run(root, c, dry_run=True)
+            self.assertTrue(res["dry_run"])
+            self.assertEqual(res["histogram"], {"none": 3})
+            self.assertEqual(len(c.prompts), 1)
+            self.assertEqual(store.get_exchanges(), [])
+            self.assertFalse((root / "auto-cursor.json").exists())
+
     def test_run_does_nothing_when_capture_disabled_mid_run(self):
         with temp_data_dir() as root:
             store, brain = make_env(root, ["no, use backoff"])

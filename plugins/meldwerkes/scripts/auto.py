@@ -474,9 +474,11 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
     """
     now = now or datetime.now()
     settings = memory.MemoryStore.load_settings()
-    if settings.auto_mode == "off":
+    # A dry run is an explicit preview that writes nothing, so it works before the
+    # loop is enabled (that is exactly when someone wants it).
+    if settings.auto_mode == "off" and not dry_run:
         return {"status": "disabled"}
-    if not settings.capture_enabled:
+    if not settings.capture_enabled and not dry_run:
         return {"status": "capture-off"}
 
     lock = RunLock()
