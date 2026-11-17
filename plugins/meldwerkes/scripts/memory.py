@@ -99,6 +99,19 @@ class Settings:
     conflict_resolution: str = "auto"    # "auto" or "manual"
     confidence_half_life_days: float = 180.0  # principle confidence halves after this many days; 0 disables
     capture_enabled: bool = True         # master switch: when off, nothing is written to the store
+    auto_mode: str = "off"               # automatic loop: "off", "propose" (principles queue for review) or "apply"
+
+
+@dataclass
+class Proposal:
+    id: str
+    brain_id: str
+    kind: str          # "principle" or "meta"
+    payload: dict
+    status: str        # "proposed", "accepted" or "rejected"
+    run_id: str
+    created_at: str
+    decided_at: Optional[str] = None
 
 
 class MemoryStore:
@@ -158,6 +171,50 @@ class MemoryStore:
                     context TEXT,
                     times_applied INTEGER,
                     FOREIGN KEY (brain_id) REFERENCES brains(id)
+                );
+                -- Automatic-loop bookkeeping lives in side tables so the positional
+                -- dataclass constructors over the original tables keep working.
+                CREATE TABLE IF NOT EXISTS proposals (
+                    id TEXT PRIMARY KEY,
+                    brain_id TEXT,
+                    kind TEXT,
+                    payload TEXT,
+                    status TEXT,
+                    run_id TEXT,
+                    created_at TEXT,
+                    decided_at TEXT
+                );
+                CREATE TABLE IF NOT EXISTS run_items (
+                    run_id TEXT,
+                    item_kind TEXT,
+                    item_id TEXT
+                );
+                CREATE TABLE IF NOT EXISTS exchanges (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT,
+                    timestamp TEXT,
+                    session_id TEXT,
+                    brain_id TEXT,
+                    domain TEXT,
+                    kind TEXT,
+                    confidence REAL,
+                    assistant TEXT,
+                    user TEXT,
+                    decision_id TEXT,
+                    paired INTEGER
+                );
+                CREATE TABLE IF NOT EXISTS auto_runs (
+                    run_id TEXT PRIMARY KEY,
+                    started_at TEXT,
+                    finished_at TEXT,
+                    rows_read INTEGER,
+                    scrubbed INTEGER,
+                    classified_json TEXT,
+                    decisions INTEGER,
+                    proposals INTEGER,
+                    errors INTEGER,
+                    checkpoint TEXT,
+                    status TEXT
                 );
             """)
 
@@ -335,6 +392,80 @@ class MemoryStore:
             ).fetchall()
         return [MetaPrinciple(*r) for r in rows]
 
+    # --- Automatic loop: proposals, runs, exchanges ---
+
+    def save_proposal(self, p: Proposal):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "INSERT INTO proposals VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (p.id, p.brain_id, p.kind, json.dumps(p.payload), p.status,
+                 p.run_id, p.created_at, p.decided_at)
+            )
+
+    def get_proposals(self, status: str = "proposed", brain_id: Optional[str] = None) -> list[Proposal]:
+        sql, args = "SELECT * FROM proposals WHERE status = ?", [status]
+        if brain_id:
+            sql += " AND brain_id = ?"
+            args.append(brain_id)
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(sql + " ORDER BY created_at", args).fetchall()
+        return [Proposal(r[0], r[1], r[2], json.loads(r[3]), r[4], r[5], r[6], r[7]) for r in rows]
+
+    def decide_proposal(self, proposal_id: str, status: str):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("UPDATE proposals SET status = ?, decided_at = ? WHERE id = ?",
+                         (status, datetime.now().isoformat(), proposal_id))
+
+    def record_run_item(self, run_id: str, item_kind: str, item_id: str):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("INSERT INTO run_items VALUES (?, ?, ?)", (run_id, item_kind, item_id))
+
+    def get_run_items(self, run_id: str) -> list[tuple]:
+        with sqlite3.connect(self.db_path) as conn:
+            return [tuple(r) for r in conn.execute(
+                "SELECT item_kind, item_id FROM run_items WHERE run_id = ?", (run_id,))]
+
+    EXCHANGE_FIELDS = ("id", "run_id", "timestamp", "session_id", "brain_id", "domain",
+                       "kind", "confidence", "assistant", "user", "decision_id", "paired")
+
+    def save_exchange(self, **fields):
+        values = [fields.get(k) for k in self.EXCHANGE_FIELDS]
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("INSERT INTO exchanges VALUES (%s)" % ",".join("?" * len(values)), values)
+
+    def get_exchanges(self, since: Optional[str] = None, kind: Optional[str] = None) -> list[dict]:
+        sql, args = "SELECT * FROM exchanges WHERE 1=1", []
+        if since:
+            sql += " AND timestamp >= ?"
+            args.append(since)
+        if kind:
+            sql += " AND kind = ?"
+            args.append(kind)
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(sql + " ORDER BY timestamp, id", args).fetchall()
+        return [dict(zip(self.EXCHANGE_FIELDS, r)) for r in rows]
+
+    RUN_FIELDS = ("rows_read", "scrubbed", "classified_json", "decisions",
+                  "proposals", "errors", "checkpoint", "status")
+
+    def start_run(self, run_id: str):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("INSERT INTO auto_runs (run_id, started_at, status) VALUES (?, ?, 'running')",
+                         (run_id, datetime.now().isoformat()))
+
+    def finish_run(self, run_id: str, **fields):
+        fields = {k: v for k, v in fields.items() if k in self.RUN_FIELDS}
+        sets = ", ".join(f"{k} = ?" for k in fields)
+        sql = "UPDATE auto_runs SET finished_at = ?" + (", " + sets if sets else "") + " WHERE run_id = ?"
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(sql, [datetime.now().isoformat(), *fields.values(), run_id])
+
+    def last_run(self) -> Optional[dict]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute("SELECT * FROM auto_runs ORDER BY started_at DESC LIMIT 1").fetchone()
+        return dict(row) if row else None
+
     # --- Settings ---
 
     @staticmethod
@@ -347,7 +478,8 @@ class MemoryStore:
             principle_auto_answer=data.get("principle_auto_answer", True),
             conflict_resolution=data.get("conflict_resolution", "auto"),
             confidence_half_life_days=data.get("confidence_half_life_days", 180.0),
-            capture_enabled=data.get("capture_enabled", True)
+            capture_enabled=data.get("capture_enabled", True),
+            auto_mode=data.get("auto_mode", "off")
         )
 
     @staticmethod
@@ -358,7 +490,8 @@ class MemoryStore:
                 "principle_auto_answer": settings.principle_auto_answer,
                 "conflict_resolution": settings.conflict_resolution,
                 "confidence_half_life_days": settings.confidence_half_life_days,
-                "capture_enabled": settings.capture_enabled
+                "capture_enabled": settings.capture_enabled,
+                "auto_mode": settings.auto_mode
             }, f, indent=2)
 
 
