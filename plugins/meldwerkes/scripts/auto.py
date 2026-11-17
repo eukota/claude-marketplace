@@ -10,12 +10,15 @@ sits in the path of a turn.
 import json
 import os
 import sys
+from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import memory
+import bootstrap
 
 MIN_NEW_ROWS = 20
 MIN_HOURS_BETWEEN_RUNS = 6
@@ -146,3 +149,68 @@ class RunLock:
 
     def __exit__(self, *exc):
         self.release()
+
+
+# ------------------------------------------------------------------ pairing
+
+@dataclass
+class Exchange:
+    timestamp: str
+    session_id: str
+    user: str
+    assistant: str
+    paired: bool
+
+
+def transcripts_root() -> Path:
+    return Path(os.environ.get("MELDWERKES_TRANSCRIPTS")
+                or Path.home() / ".claude" / "projects")
+
+
+def _user_turns(path: Path):
+    """[(cleaned user text, assistant text just before it)] for real typed prompts."""
+    turns, last_assistant = [], ""
+    for line in path.read_text(errors="ignore").splitlines():
+        try:
+            d = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        typ = d.get("type")
+        if typ not in ("user", "assistant"):
+            continue
+        text = bootstrap._text_of(d.get("message", {}).get("content"))
+        if typ == "assistant":
+            if text:
+                last_assistant = text
+            continue
+        if text and d.get("promptSource"):
+            turns.append((text, last_assistant))
+    return turns
+
+
+def pair_with_transcripts(rows: list, projects_root: Path) -> list:
+    """Attach the assistant message each captured prompt was answering.
+
+    Matching is by prompt text, not timestamp: pending rows carry local time and
+    transcripts carry UTC. Identical prompts pair in order. A prompt with no
+    transcript is kept, marked unpaired.
+    """
+    turns_by_session, used = {}, defaultdict(set)
+    out = []
+    for row in rows:
+        sid = row.get("session_id") or ""
+        prompt = row.get("prompt", "")
+        if sid not in turns_by_session:
+            files = list(Path(projects_root).glob(f"*/{sid}.jsonl")) if sid else []
+            turns_by_session[sid] = _user_turns(files[0]) if files else None
+        turns = turns_by_session[sid]
+        assistant, paired = "", False
+        if turns is not None:
+            wanted = bootstrap._clean(prompt)[:4000]
+            for i, (text, before) in enumerate(turns):
+                if i not in used[sid] and text[:len(wanted)] == wanted:
+                    used[sid].add(i)
+                    assistant, paired = before, True
+                    break
+        out.append(Exchange(row.get("timestamp", ""), sid, prompt, assistant, paired))
+    return out
