@@ -65,6 +65,24 @@ This removes that run's decisions, exchanges and proposals. Principles already
 accepted from it stay until reviewed with `/meldwerkes-review`. To roll the whole
 store back instead, use `/meldwerkes-history`.
 
+## Test the multi-mind thesis
+
+Once the loop has recorded enough labelled exchanges, a fixed held-out set is
+created automatically (`~/.small-brain/heldout.json`, never regenerated). This
+compares one pooled mind against the separate minds on that set:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/eval_fourier.py run --repeats 3 --auth subscription
+```
+
+It makes many model calls (up to 100 held-out items, two arms, three repeats), so
+confirm with the user first. The verdict is `multi-mind` only when it beats pooled
+by more than the run-to-run noise; otherwise `tie: keep the simpler structure`;
+or `insufficient data` below 30 items or 5 corrections. Ground truth is a proxy
+(a correction scores 7, a "none" scores 1), so trust the comparison, not the
+absolute correlation. Results are in `~/.small-brain/logs/eval-latest.log` and
+shown in `/meldwerkes-report`, along with the weekly correction rate.
+
 ## What it never does
 
 - It never changes or retires a principle you have already accepted.

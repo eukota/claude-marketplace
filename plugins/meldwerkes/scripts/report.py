@@ -7,6 +7,8 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from memory import MemoryStore, Settings, DEFAULT_DB
 import heldout
+import memory
+from json import loads as _json_loads  # main() imports json locally, which shadows a module-level import
 from pathlib import Path
 
 
@@ -85,6 +87,18 @@ def main():
     for w in heldout.correction_rate_by_week(store, datetime.now()):
         shown = "n/a" if w["rate"] is None else f"{w['rate']:.1f}"
         print(f"    week of {w['week_start']}: {shown}  (n={w['n']})")
+
+    eval_file = memory.DATA_DIR / "eval-results.json"
+    if eval_file.exists():
+        try:
+            last = _json_loads(eval_file.read_text())
+            verdict = last.get("verdict", "")
+            print(f"\nMulti-mind vs pooled evaluation ({last.get('date', '?')[:10]}): {verdict}")
+            if verdict.startswith("tie"):
+                print("  Warning: multi-mind did not beat pooled. The multi-mind structure has not")
+                print("  earned its complexity on this data; see logs/eval-latest.log.")
+        except Exception:
+            pass
 
     if not brains:
         print("\n  No brains registered yet.")
