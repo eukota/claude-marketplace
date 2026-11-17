@@ -105,5 +105,18 @@ class RunLockTests(unittest.TestCase):
             lock.release()
 
 
+
+class RowEndOffsetTests(unittest.TestCase):
+    def test_rows_carry_end_offset_so_a_partial_run_can_advance_the_cursor(self):
+        with temp_data_dir() as root:
+            f = root / "pending.jsonl"
+            f.write_text(_line("one") + "junk\n" + _line("two"))
+            rows, _ = auto.read_new(f, 0)
+            self.assertEqual(rows[0]["_end"], len(_line("one").encode()))
+            self.assertEqual(rows[1]["_end"], f.stat().st_size)
+            rest, _ = auto.read_new(f, rows[0]["_end"])
+            self.assertEqual([r["prompt"] for r in rest], ["two"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,11 +7,13 @@ review. It is started detached and throttled by a SessionEnd hook, so it never
 sits in the path of a turn.
 """
 
+import hashlib
 import json
 import os
 import sys
+import uuid
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -19,6 +21,7 @@ from typing import Optional
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import memory
 import bootstrap
+import scrub
 
 MIN_NEW_ROWS = 20
 MIN_HOURS_BETWEEN_RUNS = 6
@@ -56,6 +59,7 @@ def read_new(pending: Path, offset: int):
         except (json.JSONDecodeError, UnicodeDecodeError):
             continue
         if isinstance(row, dict) and row.get("prompt"):
+            row["_end"] = pos  # byte offset just past this line, for partial-run cursors
             rows.append(row)
     return rows, pos
 
@@ -214,3 +218,121 @@ def pair_with_transcripts(rows: list, projects_root: Path) -> list:
                     break
         out.append(Exchange(row.get("timestamp", ""), sid, prompt, assistant, paired))
     return out
+
+
+# ----------------------------------------------------------------- classify
+
+KINDS = ("correction", "directive", "answer", "none")
+
+
+@dataclass
+class Counts:
+    read: int = 0
+    scrubbed: int = 0
+    internal: int = 0
+    classified: dict = field(default_factory=dict)
+    decisions: int = 0
+    corrections: int = 0
+    unrouted: int = 0
+    failed_batches: int = 0
+
+
+def exchange_id(ex: Exchange) -> str:
+    """Deterministic, so a run that crashed after writing can be retried safely."""
+    key = f"{ex.session_id}|{ex.timestamp}|{ex.user}"
+    return "ex:" + hashlib.sha1(key.encode("utf-8", "replace")).hexdigest()[:16]
+
+
+def _classify_batch(completer, batch):
+    """{n: item} for a batch, or None when the model failed or returned nothing usable."""
+    try:
+        raw = bootstrap.classify(completer, batch)
+    except Exception as e:  # CLI failure, timeout, API error
+        print(f"  ! classify failed: {e}", file=sys.stderr)
+        return None
+    if not isinstance(raw, list) or not raw:
+        return None
+    return {it.get("n"): it for it in raw if isinstance(it, dict)}
+
+
+def process_exchanges(store, completer, exchanges, run_id, *, min_confidence=0.6, max_batches=10):
+    """Classify exchanges and write what they reveal.
+
+    Returns (Counts, handled): `handled` is how many of the input exchanges are
+    fully dealt with, so the caller advances its cursor only that far. A failed
+    batch stops the run there; earlier batches stay written.
+    """
+    counts = Counts(read=len(exchanges))
+    brains = {b.domain: b for b in store.get_brains()}
+    existing = {e["id"] for e in store.get_exchanges()}
+    handled, model_batches = 0, 0
+
+    for start in range(0, len(exchanges), bootstrap.BATCH):
+        chunk = exchanges[start:start + bootstrap.BATCH]
+        todo = []
+        for e in chunk:
+            if scrub.is_internal_prompt(e.user):
+                counts.internal += 1
+                continue
+            eid = exchange_id(e)
+            if eid in existing:
+                continue
+            user, dropped_u = scrub.scrub(e.user)
+            asst, dropped_a = scrub.scrub(e.assistant)
+            counts.scrubbed += dropped_u + dropped_a
+            if user.strip():
+                todo.append((e, user, asst, eid))
+
+        if todo:
+            if model_batches >= max_batches:
+                break
+            model_batches += 1
+            by_n = _classify_batch(completer, [(e.timestamp, a, u, e.session_id) for e, u, a, _ in todo])
+            if by_n is None:
+                counts.failed_batches += 1
+                break
+            for i, (e, user, asst, eid) in enumerate(todo, 1):
+                _write_item(store, counts, run_id, e, user, asst, eid, by_n.get(i) or {},
+                            brains, min_confidence)
+        handled += len(chunk)
+    return counts, handled
+
+
+def _write_item(store, counts, run_id, e, user, asst, eid, item, brains, min_confidence):
+    kind = item.get("kind") if item.get("kind") in KINDS else "none"
+    domain = (item.get("domain") or "general").strip().lower()
+    principle = item.get("principle")
+    try:
+        conf = float(item.get("confidence") or 0)
+    except (TypeError, ValueError):
+        conf = 0.0
+    if not e.paired:
+        conf = min(conf, 0.5)  # without what it answered, a "correction" is a guess
+
+    brain = brains.get(domain)
+    decision_id = None
+    if kind != "none" and principle and conf >= min_confidence:
+        if brain is None:
+            counts.unrouted += 1
+        else:
+            decision_id = str(uuid.uuid4())
+            store.save_decision(memory.Decision(
+                id=decision_id, brain_id=brain.id, timestamp=e.timestamp,
+                context=f"[auto {run_id}] {asst[:400]}", decision=user[:400], grounding="none",
+                confirmed=False if kind == "correction" else None))
+            store.record_run_item(run_id, "decision", decision_id)
+            counts.decisions += 1
+            if kind == "correction":
+                cid = str(uuid.uuid4())
+                store.save_correction(memory.Correction(
+                    id=cid, decision_id=decision_id, brain_id=brain.id, timestamp=e.timestamp,
+                    user_feedback=user[:600], principle_affected=principle))
+                store.record_run_item(run_id, "correction", cid)
+                counts.corrections += 1
+
+    store.save_exchange(
+        id=eid, run_id=run_id, timestamp=e.timestamp, session_id=e.session_id,
+        brain_id=brain.id if brain else None, domain=domain, kind=kind, confidence=conf,
+        assistant=asst[:600], user=user[:900], decision_id=decision_id, paired=int(e.paired))
+    store.record_run_item(run_id, "exchange", eid)
+    counts.classified[kind] = counts.classified.get(kind, 0) + 1
