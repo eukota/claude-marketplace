@@ -55,6 +55,13 @@ run does both:
   raw capture file `~/.small-brain/pending.jsonl` is written by the capture hook
   before scrubbing, as it always was. The loop's own model calls are not captured
   back into the store.
+- **Expired rows are skipped.** A prompt whose session transcript has been deleted
+  can never be paired with what it answered, and an unpaired exchange is never
+  confident enough to become a decision. Such rows (older than 24 hours) are skipped
+  without a model call, so a backlog of old prompts cannot starve newer ones. The log
+  line and run result report `expired` and `unpaired` counts.
+- **Quiet failures are flagged.** A run that finds durable preferences but writes no
+  decisions logs `warn=nothing-written`, and `auto.py status` prints a warning.
 
 It is **off until you run `/meldwerkes-auto`** (`auto.py enable`), because it
 sends your prompts, scrubbed, to a model. Where to look and how to undo:
