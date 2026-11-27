@@ -34,6 +34,10 @@ import scrub
 MIN_NEW_ROWS = 20
 MIN_HOURS_BETWEEN_RUNS = 6
 FALLBACK_HOURS = 24
+# A row whose session transcript is gone can never be paired with what it answered.
+# Claude Code deletes old transcripts, so a backlog read oldest-first fills up with
+# such rows. Rows younger than this are kept: the transcript may not exist yet.
+EXPIRED_GRACE_HOURS = 24
 
 
 def pending_path() -> Path:
@@ -201,6 +205,29 @@ def _user_turns(path: Path):
     return turns
 
 
+def drop_expired(rows: list, projects_root: Path, now: datetime,
+                 grace_hours: int = EXPIRED_GRACE_HOURS):
+    """Split rows into (live, expired).
+
+    Expired means the session's transcript no longer exists and the row is older
+    than the grace period. Such a row can never pair, and an unpaired exchange is
+    capped below the confidence needed to write a decision, so classifying it only
+    spends model calls. A row with no usable timestamp is kept, not dropped.
+    """
+    cutoff = now - timedelta(hours=grace_hours)
+    has_transcript, live, expired = {}, [], []
+    for row in rows:
+        sid = row.get("session_id") or ""
+        if sid not in has_transcript:
+            has_transcript[sid] = bool(sid) and any(Path(projects_root).glob(f"*/{sid}.jsonl"))
+        ts = _naive(row.get("timestamp", ""))
+        if not has_transcript[sid] and ts is not None and ts < cutoff:
+            expired.append(row)
+        else:
+            live.append(row)
+    return live, expired
+
+
 def pair_with_transcripts(rows: list, projects_root: Path) -> list:
     """Attach the assistant message each captured prompt was answering.
 
@@ -243,6 +270,8 @@ class Counts:
     decisions: int = 0
     corrections: int = 0
     unrouted: int = 0
+    unpaired: int = 0   # classified without the assistant message they answered
+    expired: int = 0    # skipped: transcript gone, so they can never pair
     failed_batches: int = 0
     stopped: bool = False
 
@@ -294,6 +323,8 @@ def process_exchanges(store, completer, exchanges, run_id, *, min_confidence=0.6
             counts.scrubbed += dropped_u + dropped_a
             if user.strip():
                 todo.append((e, user, asst, eid))
+                if not e.paired:
+                    counts.unpaired += 1
 
         if todo:
             if model_batches >= max_batches:
@@ -461,6 +492,16 @@ def append_log(line: str) -> None:
         f.write(line + "\n")
 
 
+def nothing_written(classified: dict, decisions: int) -> bool:
+    """True when the model found durable preferences but no decision was written.
+
+    That is not a quiet success: unpaired exchanges (no transcript), low confidence
+    and unrouted domains all end here. It is a prompt to look at the log, not an error.
+    """
+    found = sum(n for kind, n in (classified or {}).items() if kind != "none")
+    return found > 0 and decisions == 0
+
+
 def _capture_off() -> bool:
     return not memory.MemoryStore.load_settings().capture_enabled
 
@@ -489,13 +530,21 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
     try:
         store = memory.MemoryStore(Path(db_path))
         cursor = load_cursor()
-        all_rows, end_offset = read_new(pending_path(), cursor)
-        if not all_rows:
+        rows, end_offset = read_new(pending_path(), cursor)
+        if not rows:
             return {"status": "idle"}
+        # Rows whose transcript is gone are skipped without a model call; the cursor
+        # moves past them with the live rows (or alone, if nothing live is left).
+        all_rows, expired = drop_expired(rows, transcripts_root(), now)
+        if not all_rows:
+            if not dry_run:
+                save_cursor(end_offset)
+                append_log(f"{now.isoformat()} status=idle expired={len(expired)}")
+            return {"status": "idle", "expired": len(expired)}
         window = all_rows[: max_batches * bootstrap.BATCH]
 
         if dry_run:
-            return _dry_run(completer, all_rows, window)
+            return _dry_run(completer, all_rows, window, len(expired))
 
         run_id = now.strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:6]
         started = time.monotonic()
@@ -515,6 +564,8 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
                 skipped_batch = _note_failure(cursor, window)
             elif handled > 0 or not counts.failed_batches:
                 _save_failures({})
+            reached = load_cursor()
+            counts.expired = sum(1 for r in expired if r["_end"] <= reached)
 
             proposals = 0
             if not counts.failed_batches and not counts.stopped:
@@ -545,17 +596,23 @@ def run_once(db_path, completer, *, dry_run: bool = False, now: Optional[datetim
         else:
             status = "ok"
         errors += counts.failed_batches
+        warn = "nothing-written" if not counts.stopped and nothing_written(counts.classified, counts.decisions) else ""
         store.finish_run(run_id, rows_read=counts.read, scrubbed=counts.scrubbed,
                          classified_json=json.dumps(counts.classified), decisions=counts.decisions,
                          proposals=proposals, errors=errors, checkpoint=snap.name if snap else None,
                          status=status)
         append_log(f"{now.isoformat()} run={run_id} status={status} read={counts.read} "
                    f"handled={handled} scrubbed={counts.scrubbed} internal={counts.internal} "
+                   f"unpaired={counts.unpaired} expired={counts.expired} "
                    f"classified={json.dumps(counts.classified, sort_keys=True)} decisions={counts.decisions} "
                    f"proposals={proposals} errors={errors} checkpoint={snap.name if snap else '-'} "
-                   f"duration={time.monotonic() - started:.1f}s" + (" skipped_batch=1" if skipped_batch else ""))
-        return {"status": status, "run_id": run_id, "counts": counts, "handled": handled,
-                "proposals": proposals}
+                   f"duration={time.monotonic() - started:.1f}s" + (" skipped_batch=1" if skipped_batch else "")
+                   + (f" warn={warn}" if warn else ""))
+        result = {"status": status, "run_id": run_id, "counts": counts, "handled": handled,
+                  "proposals": proposals}
+        if warn:
+            result["warn"] = warn
+        return result
     finally:
         if previous_env is None:
             os.environ.pop(scrub.INTERNAL_ENV, None)
@@ -603,7 +660,7 @@ def _note_failure(cursor: int, window: list) -> bool:
     return False
 
 
-def _dry_run(completer, all_rows, window) -> dict:
+def _dry_run(completer, all_rows, window, expired: int = 0) -> dict:
     """Classify one batch, write nothing: batch estimate plus a kind histogram."""
     exchanges = pair_with_transcripts(window[:bootstrap.BATCH], transcripts_root())
     batch = []
@@ -619,7 +676,7 @@ def _dry_run(completer, all_rows, window) -> dict:
     for i in range(1, len(batch) + 1):
         kind = (by_n or {}).get(i, {}).get("kind", "none")
         histogram[kind] = histogram.get(kind, 0) + 1
-    return {"status": "dry-run", "dry_run": True, "rows": len(all_rows),
+    return {"status": "dry-run", "dry_run": True, "rows": len(all_rows), "expired": expired,
             "batches": -(-len(all_rows) // bootstrap.BATCH), "histogram": histogram}
 
 
@@ -691,6 +748,14 @@ def status_text(store, now: Optional[datetime] = None) -> str:
     if last:
         lines.append(f"last run: {last['run_id']} {last['status']} started {last['started_at']} "
                      f"decisions={last['decisions']} proposals={last['proposals']} errors={last['errors']}")
+        try:
+            classified = json.loads(last.get("classified_json") or "{}")
+        except (TypeError, ValueError):
+            classified = {}
+        if nothing_written(classified, last["decisions"] or 0):
+            found = sum(n for k, n in classified.items() if k != "none")
+            lines.append(f"warning: last run found {found} durable item(s) but wrote 0 decisions "
+                         f"(unpaired, low confidence or unrouted); see logs/auto-latest.log")
     else:
         lines.append("last run: none")
     lines.append(f"proposals awaiting review: {len(store.get_proposals())}")

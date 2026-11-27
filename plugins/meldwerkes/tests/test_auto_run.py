@@ -185,6 +185,138 @@ class RunOnceTests(unittest.TestCase):
             self.assertNotIn("last run: none", text)
 
 
+def write_pending(root, rows):
+    (root / "pending.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    return rows
+
+
+def dead_row(i, session="gone", ts="2026-10-01T09:00:00"):
+    return {"prompt": f"old prompt {i}", "session_id": session, "timestamp": ts}
+
+
+class ExpiredRowTests(unittest.TestCase):
+    """Rows whose session transcript is gone can never pair, so they can never
+    produce a decision (an unpaired exchange is capped below min_confidence).
+    They must be skipped without model calls instead of eating the run."""
+
+    def test_rows_without_transcript_are_skipped_without_model_calls(self):
+        with temp_data_dir() as root:
+            store, brain = make_env(root, ["x"])
+            write_pending(root, [dead_row(i) for i in range(3)])
+            c = StubCompleter([nones(3)])
+            res = run(root, c)
+            self.assertEqual(res["status"], "idle")
+            self.assertEqual(res["expired"], 3)
+            self.assertEqual(c.prompts, [])
+            self.assertEqual(store.get_exchanges(), [])
+            self.assertEqual(auto.load_cursor(), (root / "pending.jsonl").stat().st_size)
+            self.assertIn("expired=3", (root / "logs" / "auto-latest.log").read_text())
+
+    def test_expired_rows_do_not_block_live_rows_behind_them(self):
+        with temp_data_dir() as root:
+            store, brain = make_env(root, ["keep it short", "run the tests"])
+            live = [json.loads(l) for l in (root / "pending.jsonl").read_text().splitlines()]
+            write_pending(root, [dead_row(i) for i in range(30)] + live)
+            c = StubCompleter([nones(2)])
+            res = run(root, c)
+            self.assertEqual(res["status"], "ok")
+            self.assertEqual(len(c.prompts), 1)              # one batch: only the live rows
+            self.assertEqual(len(store.get_exchanges()), 2)
+            self.assertEqual(res["counts"].expired, 30)
+            self.assertEqual(auto.load_cursor(), (root / "pending.jsonl").stat().st_size)
+
+    def test_recent_row_without_transcript_is_kept_for_now(self):
+        # inside the grace period a missing transcript may just be a session that is
+        # still starting; it is processed (as unpaired), not dropped
+        with temp_data_dir() as root:
+            store, brain = make_env(root, ["x"])
+            write_pending(root, [dead_row(0, ts="2026-11-17T09:00:00")])
+            c = StubCompleter([nones(1)])
+            res = run(root, c)
+            self.assertEqual(res["counts"].expired, 0)
+            self.assertEqual(len(c.prompts), 1)
+            self.assertEqual(res["counts"].unpaired, 1)
+
+    def test_log_reports_unpaired_count(self):
+        with temp_data_dir() as root:
+            store, brain = make_env(root, ["x"])
+            write_pending(root, [dead_row(0, ts="2026-11-17T09:00:00")])
+            run(root, StubCompleter([nones(1)]))
+            self.assertIn("unpaired=1", (root / "logs" / "auto-latest.log").read_text())
+
+    def test_dry_run_reports_expired_and_writes_nothing(self):
+        with temp_data_dir() as root:
+            store, brain = make_env(root, ["keep it short"])
+            live = [json.loads(l) for l in (root / "pending.jsonl").read_text().splitlines()]
+            write_pending(root, [dead_row(i) for i in range(5)] + live)
+            c = StubCompleter([nones(1)])
+            res = run(root, c, dry_run=True)
+            self.assertTrue(res["dry_run"])
+            self.assertEqual(res["rows"], 1)
+            self.assertEqual(res["expired"], 5)
+            self.assertEqual(res["histogram"], {"none": 1})
+            self.assertFalse((root / "auto-cursor.json").exists())
+
+    def test_partial_run_cursor_stays_before_unprocessed_live_rows(self):
+        with temp_data_dir() as root:
+            store, brain = make_env(root, [f"prompt {i}" for i in range(40)])
+            live = [json.loads(l) for l in (root / "pending.jsonl").read_text().splitlines()]
+            write_pending(root, [dead_row(i) for i in range(10)] + live)
+            rows, _ = auto.read_new(root / "pending.jsonl", 0)
+            res = run(root, StubCompleter([nones(20), "garbage"]))
+            self.assertEqual(res["status"], "partial")
+            self.assertEqual(auto.load_cursor(), rows[10 + 19]["_end"])   # after the 20th live row
+            res2 = run(root, StubCompleter([nones(20)]))
+            self.assertEqual(res2["status"], "ok")
+            self.assertEqual(len(store.get_exchanges()), 40)
+
+
+class NothingWrittenWarningTests(unittest.TestCase):
+    """A run that finds durable preferences but writes no decisions is not a quiet
+    success: it must say so in the result, the log and the status."""
+
+    def _unpaired_correction_run(self, root):
+        make_env(root, ["x"])
+        write_pending(root, [dead_row(0, ts="2026-11-17T09:00:00")])   # recent, no transcript
+        reply = json.dumps([item(1, "correction", principle="p", confidence=0.95)])
+        return run(root, StubCompleter([reply]))
+
+    def test_warns_when_durable_items_found_but_no_decision_written(self):
+        with temp_data_dir() as root:
+            res = self._unpaired_correction_run(root)
+            self.assertEqual(res["counts"].decisions, 0)
+            self.assertEqual(res["warn"], "nothing-written")
+            self.assertIn("warn=nothing-written", (root / "logs" / "auto-latest.log").read_text())
+
+    def test_no_warning_when_a_decision_is_written(self):
+        with temp_data_dir() as root:
+            make_env(root, ["no, use backoff"])
+            res = run(root, StubCompleter([json.dumps([item(1, "correction", principle="p")])]))
+            self.assertEqual(res["counts"].decisions, 1)
+            self.assertNotIn("warn", res)
+            self.assertNotIn("warn=", (root / "logs" / "auto-latest.log").read_text())
+
+    def test_no_warning_when_everything_is_none(self):
+        with temp_data_dir() as root:
+            make_env(root, ["run the tests"])
+            res = run(root, StubCompleter([nones(1)]))
+            self.assertNotIn("warn", res)
+
+    def test_status_shows_the_warning_for_the_last_run(self):
+        with temp_data_dir() as root:
+            self._unpaired_correction_run(root)
+            store = MemoryStore(root / "memory.db")
+            text = auto.status_text(store, now=NOW)
+            self.assertIn("warning:", text)
+            self.assertIn("0 decisions", text)
+
+    def test_status_has_no_warning_after_a_clean_run(self):
+        with temp_data_dir() as root:
+            store, _ = make_env(root, ["no, use backoff"])
+            run(root, StubCompleter([json.dumps([item(1, "correction", principle="p")])]))
+            self.assertNotIn("warning:", auto.status_text(store, now=NOW))
+
+
 class RetractRunTests(unittest.TestCase):
     def test_retract_run_removes_only_that_runs_rows(self):
         with temp_data_dir() as root:
